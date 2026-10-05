@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" fill="none" role="img" aria-labelledby="title">
+<title id="title">A sleepy banker beside a piggy bank and a declining graph</title>
+<defs>
+ <pattern id="grain" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r=".7" fill="#3b4238" opacity=".10"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#333b2d" flood-opacity=".10"/></filter>
+ <style>.ink{stroke:#28332e;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.thin{stroke:#28332e;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.fine{stroke:#28332e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
+</defs>
+<path fill="#f4f0e5" d="M0 0h720v480H0z"/>
+<path fill="url(#grain)" d="M0 0h720v480H0z"/>
+
+<path d="M94 126c115-66 279-72 410 20s88 221-10 251c-120 36-374-9-400-93-22-68-55-128 0-178Z" fill="#e4e7da"/>
+<rect x="331" y="83" width="268" height="180" rx="13" fill="#faf8ee" class="ink"/>
+<path d="M363 112v117h204m-203-82h202m-202 41h202" class="thin" opacity=".18"/>
+<path d="m370 121 40 23 34-9 37 48 36-5 39 45" stroke="#c08c74" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="m539 221 20 5 1-21" stroke="#c08c74" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M113 382h499m-447 0v48m389-48v48" class="ink"/>
+<path d="M168 381v-47c0-38 21-58 64-58s65 25 65 58v47" fill="#a6b7c4" class="ink"/>
+<path d="M233 277v45m0 0-13 12 13 37 15-37-15-12Z" fill="#d2b26e" class="thin"/>
+<path d="M197 241c0-40 11-65 38-65 28 0 44 22 43 60-1 37-21 67-45 64-25-3-36-25-36-59Z" fill="#dfb59a" class="ink"/>
+<path d="M198 231c-12-35-7-75 35-75 33 0 52 27 42 56-12-3-25-15-29-26-10 22-23 28-44 30Z" fill="#28332e" class="ink"/>
+<path d="M214 238h13m25 0h12m-27 8-4 14h10m-18 18c8-6 17-6 26 0" class="thin"/>
+<path d="m191 355-14-67 24-15m-21 15 12 10m93 68 28-31 34 13" class="ink"/>
+<path d="M173 290c-6-17 4-33 17-33 10 0 13 9 10 20" fill="#dfb59a" class="thin"/>
+<path d="M361 322c0-43 45-74 95-74 45 0 82 27 88 61l20 6v35l-22 5c-8 19-27 30-46 34l-6 16h-22l-4-13-44-2-7 15h-22l-6-24c-15-13-24-29-24-59Z" fill="#dbad99" class="ink" filter="url(#shadow)"/>
+<path d="m481 260 22-25 19 43" fill="#dbad99" class="ink"/>
+<path d="M402 268h58" class="ink"/>
+<circle cx="520" cy="305" r="4" fill="#28332e"/>
+<rect x="542" y="314" width="29" height="35" rx="12" fill="#ecc9b5" class="thin"/>
+<path d="M552 325v10m10-10v10m-201-15c-22-10-25 14-10 13 12-1 8-12 0-14" class="thin"/>
+<circle cx="434" cy="216" r="19" fill="#d5b467" class="thin"/>
+<path d="M433 206v20m-5-16c13-7 14 7 5 7-10 0-9 12 3 6" class="fine"/>
+<path d="m431 167-3 12m13-10-3 12m-135-44 11-8m-6 23 14 1" class="thin" opacity=".4"/>
+
+</svg>

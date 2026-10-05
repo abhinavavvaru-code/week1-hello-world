@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" fill="none" role="img" aria-labelledby="title">
+<title id="title">An open book floating gracefully above its reading desk</title>
+<defs>
+ <pattern id="grain" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r=".7" fill="#3b4238" opacity=".10"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#333b2d" flood-opacity=".10"/></filter>
+ <style>.ink{stroke:#28332e;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.thin{stroke:#28332e;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.fine{stroke:#28332e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
+</defs>
+<path fill="#f4f0e5" d="M0 0h720v480H0z"/>
+<path fill="url(#grain)" d="M0 0h720v480H0z"/>
+
+<circle cx="352" cy="220" r="173" fill="#e2e6d9"/>
+<circle cx="572" cy="130" r="44" fill="#dbb38f"/>
+<ellipse cx="356" cy="391" rx="182" ry="25" fill="#28332e" opacity=".08"/>
+<path d="M129 391h462m-424 0v46m386-46v46" class="ink"/>
+<path d="M168 392h168l-9-30H180Z" fill="#aebccc" class="ink"/>
+<path d="M169 377h157m-143-9h125" class="thin"/>
+<path d="M362 384h127l-7-25H370Z" fill="#dfbd93" class="ink"/>
+<path d="M375 373h105" class="thin"/>
+<g transform="translate(354 231) rotate(-9)" filter="url(#shadow)">
+<path d="M0-27c-54-34-112-37-177-16L-150 88c61-20 112-13 150 18 38-31 89-38 150-18l27-131C112-64 54-61 0-27Z" fill="#788f80" class="ink"/>
+<path d="M0-34c-50-32-104-40-161-25l20 131C-87 57-39 67 0 98c39-31 87-41 141-26l20-131C104-74 50-66 0-34Z" fill="#fffcf0" class="ink"/>
+<path d="M0-34V98" class="thin"/>
+<path d="M-137-34c38-5 72 2 111 20m-107 7c38-4 71 3 106 21m-102 5c35-1 66 6 102 23m-98 3c33 0 62 7 98 24" class="thin" opacity=".35"/>
+<path d="M27-14c37-18 70-25 108-20M27 14c37-18 68-23 104-21M27 42c33-16 64-23 98-23M27 68c33-17 62-23 94-23" class="thin" opacity=".35"/>
+<path d="m112-56-9 58 13-5 9 11 9-63" fill="#deb98d" class="thin"/>
+</g>
+<path d="m207 271-13 43m6-20-14 5m321-42 8 48m-5-22 13 6m-186 51v-24m28 18v-16" class="thin" opacity=".4"/>
+<path d="m199 152 13-3m-7-7 3 13m292-69 15 1m-7-8-1 15" class="thin"/>
+<path d="M285 92c7-14 19-17 30-8m74 25c10-12 21-13 29-3" class="thin" opacity=".3"/>
+<path d="m471 340 10-12m-3 24 15-3m-330-33-9-10m-3 20-15 2" class="thin" opacity=".35"/>
+
+</svg>

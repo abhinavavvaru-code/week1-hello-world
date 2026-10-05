@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" fill="none" role="img" aria-labelledby="title">
+<title id="title">A cheerful globe greeting the rising sun</title>
+<defs>
+ <pattern id="grain" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r=".7" fill="#3b4238" opacity=".10"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#333b2d" flood-opacity=".10"/></filter>
+ <style>.ink{stroke:#28332e;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.thin{stroke:#28332e;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.fine{stroke:#28332e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
+</defs>
+<path fill="#f4f0e5" d="M0 0h720v480H0z"/>
+<path fill="url(#grain)" d="M0 0h720v480H0z"/>
+
+<circle cx="352" cy="243" r="175" fill="#e4e7d9"/>
+<path d="M99 397c119-18 340-30 514 0" class="thin" opacity=".24"/>
+<ellipse cx="340" cy="400" rx="117" ry="17" fill="#28332e" opacity=".08"/>
+<circle cx="549" cy="111" r="46" fill="#d9b66a" class="ink"/>
+<path d="M549 46V29m0 164v-17m65-65h17m-163 0h16m110-46 12-12m-115 115 11-11m92 0 12 12m-115-115 11 11" class="thin"/>
+<circle cx="535" cy="106" r="3" fill="#28332e"/>
+<circle cx="563" cy="106" r="3" fill="#28332e"/>
+<path d="M538 122c7 7 15 7 22 0" class="thin"/>
+<path d="M330 383v22l-30 7m66-29v22l30 7" class="ink"/>
+<path d="M219 235c-21-4-47 6-50 29m294-29c25-18 46-48 56-77" class="ink"/>
+<path d="m510 163 9-20 9 20m-359 90-10 10 12 11" class="ink"/>
+<circle cx="345" cy="248" r="133" fill="#adc1c9" class="ink" filter="url(#shadow)"/>
+<path d="M304 122c-5 23 6 36 22 42l8 24-21 20-21-9-16 9 1 29-32 12-29-17c6-53 40-96 88-110Z" fill="#91ac91" class="thin"/>
+<path d="m393 124-11 25 17 26-9 18 18 10 6 30 31 12 30-18c-9-47-39-85-82-103Z" fill="#91ac91" class="thin"/>
+<path d="m250 286 32-7 24 13 21-4 19 18-3 26-15 17-4 30c-40-6-74-31-94-62l20-31Z" fill="#91ac91" class="thin"/>
+<path d="m399 299 23-10 24 10-12 22-27 10-8-15Z" fill="#91ac91" class="thin"/>
+<path d="M306 256c3-13 17-14 23-2m36 0c6-12 20-11 23 2" class="ink"/>
+<path d="M329 280c12 20 31 20 44 0" class="ink"/>
+<ellipse cx="301" cy="279" rx="12" ry="6" fill="#d7ad95"/>
+<ellipse cx="396" cy="279" rx="12" ry="6" fill="#d7ad95"/>
+<path d="M164 129c1-14 12-25 27-25 14 0 25 9 27 22 19-1 31 11 31 27h-95c-14-17-5-24 10-24Z" fill="#faf8ee" class="thin"/>
+<path d="M526 300c1-12 10-21 23-21 12 0 21 8 23 18 16-1 26 10 26 23h-81c-12-14-4-20 9-20Z" fill="#faf8ee" class="thin"/>
+<path d="m140 331 10-12m-6 27 15-2m278-186 9-10m-5 24 12-2" class="thin" opacity=".4"/>
+
+</svg>

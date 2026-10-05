@@ -1,74 +1,28 @@
-import { createClient } from '@/lib/supabase/server'
-import JokesTable, { type Joke } from '@/components/JokesTable'
+import { requireUser } from '@/lib/auth'
+import { loadCaptions } from '@/lib/caption-data'
+import CaptionGallery from '@/components/CaptionGallery'
+import RetryButton from '@/components/RetryButton'
 
 export const dynamic = 'force-dynamic'
 
-type Row = {
-  id: number
-  content: string
-  votes: { user_id: string; value: number }[] | null
-}
-
 export default async function Home() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const { data, error } = await supabase
-    .from('messages')
-    .select('id, content, votes(user_id, value)')
-
-  const rows = (data ?? []) as unknown as Row[]
-
-  const jokes: Joke[] = rows
-    .map((row) => {
-      const votes = row.votes ?? []
-      return {
-        id: row.id,
-        content: row.content,
-        laughs: votes.filter((v) => v.value === 1).length,
-        groans: votes.filter((v) => v.value === -1).length,
-        myVote: votes.find((v) => v.user_id === user?.id)?.value ?? 0,
-      }
-    })
-    .sort((a, b) => b.laughs - b.groans - (a.laughs - a.groans) || a.id - b.id)
-
-  const top = jokes[0]
-
+  const { supabase, user } = await requireUser()
+  const { captions, error } = await loadCaptions(supabase, user.id)
   return (
-    <main className="shell">
-      <h1 className="sr-only">Jokes</h1>
-
-      {top && (
-        <section className="headliner" aria-label="Top joke">
-          <p className="headliner-label">Top joke right now</p>
-          <p className="headliner-joke">{top.content}</p>
-          <p className="headliner-score">
-            {plural(top.laughs, 'laugh')}, {plural(top.groans, 'groan')}
-          </p>
-        </section>
-      )}
-
-      <section aria-labelledby="all-jokes">
-        <div className="section-head">
-          <h2 id="all-jokes">All jokes</h2>
-          <p className="hint">
-            Ranked by laughs minus groans.{' '}
-            {user ? 'Click a vote again to take it back.' : 'Sign in to vote.'}
-          </p>
-        </div>
-
-        {error ? (
-          <p className="status status-error">Couldn&apos;t load jokes: {error.message}</p>
-        ) : (
-          <JokesTable initialJokes={jokes} userId={user?.id ?? null} />
-        )}
+    <main id="main-content" className="shell page-shell">
+      <section className="page-heading">
+        <p className="eyebrow"><span className="live-dot" /> THE HUMOR PROJECT</p>
+        <h1>Find your <span>funny.</span></h1>
+        <p className="lede">A picture. A punchline. Your call.</p>
       </section>
+      {error ? (
+        <div className="empty-state" role="alert">
+          <h2>The jokes are taking a break.</h2>
+          <p>We couldn&apos;t load the captions. Please try again in a moment.</p>
+          <RetryButton />
+        </div>
+      ) : <CaptionGallery initialCaptions={captions} userId={user.id} />}
+      <footer className="page-footer">A small study in what makes us laugh.<span>Made for the Humor Project.</span></footer>
     </main>
   )
-}
-
-function plural(n: number, word: string) {
-  return `${n} ${word}${n === 1 ? '' : 's'}`
 }

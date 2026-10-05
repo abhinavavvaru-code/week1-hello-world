@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" fill="none" role="img" aria-labelledby="title">
+<title id="title">A programmer and curious moths gathered around a luminous laptop</title>
+<defs>
+ <pattern id="grain" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r=".7" fill="#3b4238" opacity=".10"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#333b2d" flood-opacity=".10"/></filter>
+ <style>.ink{stroke:#28332e;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.thin{stroke:#28332e;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.fine{stroke:#28332e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
+</defs>
+<path fill="#f4f0e5" d="M0 0h720v480H0z"/>
+<path fill="url(#grain)" d="M0 0h720v480H0z"/>
+
+<path d="M142 94c85-28 197-29 290 8 82 34 116 108 109 190-8 101-117 115-224 106-151-13-227-138-175-304Z" fill="#dce3d9"/>
+<circle cx="561" cy="116" r="36" fill="#d1b369"/>
+<path d="M563 82c-21 25-22 48-4 68a36 36 0 0 1 4-68Z" fill="#f4f0e5"/>
+<path d="M91 381h535" class="ink"/>
+<path d="M146 383v48m416-48v48" class="ink"/>
+<path d="M315 381v-89c-51-2-88 35-94 89" fill="#a8b7c3" class="ink"/>
+<path d="m259 381 28-39 65 32" fill="#a8b7c3" class="ink"/>
+<path d="M305 224c-30 0-53 28-51 60 2 32 24 53 50 51 28-2 47-27 47-59 0-30-18-52-46-52Z" fill="#dfb49c" class="ink"/>
+<path d="M258 268c-6-42 23-68 59-60 28 6 40 35 30 61l-10-26c-23 15-53 3-62-4l-4 35Z" fill="#28332e" class="ink"/>
+<path d="M314 286h17m-17-20h-15m31 1h14m-31 2v14m9 20c5 3 10 2 14-3" class="thin"/>
+<path d="M286 333v31l35 10" class="ink"/>
+<path d="M336 335h208l-19-135H355Z" fill="#3b4a44" class="ink" filter="url(#shadow)"/>
+<path d="M369 216h141l14 104H351Z" fill="#f5dba3" class="thin"/>
+<path d="M336 335h208l29 43H312Z" fill="#adb9af" class="ink"/>
+<path d="M354 348h172m-135 12h103" class="thin" opacity=".5"/>
+<path d="m390 252-12 12 12 12m43-24 12 12-12 12m-20-30-10 36" class="ink" opacity=".45"/>
+<path d="M398 295h48" class="thin" opacity=".35"/>
+<path d="M355 201c-28-73-4-143 77-147 84-4 124 66 111 146" fill="#edcf86" opacity=".12"/>
+<g class="thin" transform="translate(443 145) rotate(14)">
+<ellipse cx="-12" cy="-7" rx="17" ry="11" fill="#fdf9e9" transform="rotate(-35 -12 -7)"/>
+<ellipse cx="12" cy="-7" rx="17" ry="11" fill="#fdf9e9" transform="rotate(35 12 -7)"/>
+<ellipse cx="0" cy="3" rx="4" ry="12" fill="#d4b167"/>
+<path d="m0-8-5-8m5 8 5-8"/>
+</g>
+<g class="thin" transform="translate(335 151) rotate(-22) scale(.72)">
+<ellipse cx="-12" cy="-7" rx="17" ry="11" fill="#fdf9e9" transform="rotate(-35 -12 -7)"/>
+<ellipse cx="12" cy="-7" rx="17" ry="11" fill="#fdf9e9" transform="rotate(35 12 -7)"/>
+<ellipse cx="0" cy="3" rx="4" ry="12" fill="#d4b167"/>
+<path d="m0-8-5-8m5 8 5-8"/>
+</g>
+<g class="thin" transform="translate(546 163) rotate(34) scale(.7)">
+<ellipse cx="-12" cy="-7" rx="17" ry="11" fill="#fdf9e9" transform="rotate(-35 -12 -7)"/>
+<ellipse cx="12" cy="-7" rx="17" ry="11" fill="#fdf9e9" transform="rotate(35 12 -7)"/>
+<ellipse cx="0" cy="3" rx="4" ry="12" fill="#d4b167"/>
+<path d="m0-8-5-8m5 8 5-8"/>
+</g>
+<path d="m173 140 8-12m-4 27 15-2m353 111 12-7m-6 24 14 3" class="thin" opacity=".35"/>
+<path d="M133 352h48l-4 29h-40Z" fill="#d9b894" class="thin"/>
+<path d="M180 359c23-5 27 16 0 18" class="thin"/>
+<path d="M148 338c-13-13 12-17 2-29" class="thin" opacity=".3"/>
+
+</svg>

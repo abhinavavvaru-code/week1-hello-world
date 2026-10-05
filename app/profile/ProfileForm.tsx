@@ -27,12 +27,17 @@ export default function ProfileForm({
   const router = useRouter()
   const supabase = createClient()
 
-  const isSetup = !profile?.first_name || !profile?.last_name
+  const missingGoogleName = !profile?.first_name && !profile?.last_name
   const initial = (firstName || email).charAt(0).toUpperCase()
 
   const uploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setStatus({ text: 'Choose a JPG, PNG, WebP, or GIF photo.', error: true })
+      return
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       setStatus({ text: 'Pick an image under 5 MB.', error: true })
@@ -45,20 +50,17 @@ export default function ProfileForm({
     // The image goes to Storage; only its URL goes in the database
     const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '-')
     const path = `${userId}/${Date.now()}-${safeName}`
-    const { error } = await supabase.storage
-      .from('avatars')
-      .upload(path, file, { upsert: true })
-
-    setBusy(false)
-
-    if (error) {
-      setStatus({ text: `Photo didn't upload: ${error.message}`, error: true })
-      return
+    try {
+      const { error } = await supabase.storage.from('avatars').upload(path, file)
+      if (error) throw error
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      setAvatarUrl(data.publicUrl)
+      setStatus({ text: 'Photo uploaded. Save your profile to keep it.', error: false })
+    } catch {
+      setStatus({ text: 'Your photo could not be uploaded. Please try again.', error: true })
+    } finally {
+      setBusy(false)
     }
-
-    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-    setAvatarUrl(data.publicUrl)
-    setStatus({ text: 'Photo uploaded. Save your profile to keep it.', error: false })
   }
 
   const save = async (e: React.FormEvent) => {
@@ -66,37 +68,36 @@ export default function ProfileForm({
     setBusy(true)
     setStatus({ text: 'Saving…', error: false })
 
-    const { error } = await supabase.from('profiles').upsert({
-      id: userId,
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      avatar_url: avatarUrl || null,
-    })
-
-    setBusy(false)
-
-    if (error) {
-      setStatus({ text: `Profile didn't save: ${error.message}`, error: true })
-      return
+    try {
+      const { error } = await supabase.from('profiles').upsert({
+        id: userId,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        avatar_url: avatarUrl || null,
+      })
+      if (error) throw error
+      setStatus({ text: 'Profile saved.', error: false })
+      router.refresh()
+    } catch {
+      setStatus({ text: 'Your profile could not be saved. Please try again.', error: true })
+    } finally {
+      setBusy(false)
     }
-
-    setStatus({ text: 'Profile saved.', error: false })
-    router.push('/dashboard')
-    router.refresh()
   }
 
   return (
     <div className="panel narrow">
-      <h1 className="page-title">{isSetup ? 'Finish your profile' : 'Your profile'}</h1>
+      <h1 className="page-title">Your profile</h1>
       <p className="lede">
-        {isSetup ? 'Add your name to finish signing up.' : `Signed in as ${email}.`}
+        Signed in as {email}. Your Google details are filled in automatically; edit them whenever you like.
       </p>
+      {missingGoogleName && <p className="hint">Google didn&apos;t provide your name. You can add your first and last name below.</p>}
 
       <form onSubmit={save} className="stack">
         <div className="photo-row">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="Your profile photo" className="avatar avatar-lg" />
+            <img src={avatarUrl} alt="Your profile photo" className="avatar avatar-lg" referrerPolicy="no-referrer" />
           ) : (
             <span className="avatar avatar-lg avatar-fallback" aria-hidden="true">
               {initial}
@@ -106,7 +107,7 @@ export default function ProfileForm({
             {avatarUrl ? 'Change photo' : 'Upload photo'}
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/gif"
               className="sr-only"
               onChange={uploadPhoto}
               disabled={busy}
@@ -122,7 +123,7 @@ export default function ProfileForm({
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             autoComplete="given-name"
-            required
+            disabled={busy}
           />
         </div>
 
@@ -134,13 +135,13 @@ export default function ProfileForm({
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             autoComplete="family-name"
-            required
+            disabled={busy}
           />
         </div>
 
         <div>
           <button type="submit" className="btn btn-primary" disabled={busy}>
-            Save profile
+            {busy ? 'Please wait…' : 'Save profile'}
           </button>
         </div>
 

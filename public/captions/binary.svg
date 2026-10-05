@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" fill="none" role="img" aria-labelledby="title">
+<title id="title">Two companion robots displaying binary digits</title>
+<defs>
+ <pattern id="grain" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r=".7" fill="#3b4238" opacity=".10"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#333b2d" flood-opacity=".10"/></filter>
+ <style>.ink{stroke:#28332e;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.thin{stroke:#28332e;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.fine{stroke:#28332e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
+</defs>
+<path fill="#f4f0e5" d="M0 0h720v480H0z"/>
+<path fill="url(#grain)" d="M0 0h720v480H0z"/>
+
+<circle cx="359" cy="233" r="172" fill="#e1e6d9"/>
+<path d="M123 396c134-25 325-28 483 0" class="thin" opacity=".25"/>
+<ellipse cx="257" cy="400" rx="90" ry="15" fill="#28332e" opacity=".08"/>
+<ellipse cx="470" cy="400" rx="87" ry="15" fill="#28332e" opacity=".08"/>
+<path d="M259 159v-37" class="ink"/>
+<circle cx="259" cy="110" r="12" fill="#d2b166" class="ink"/>
+<path d="M464 159v-36" class="ink"/>
+<path d="m454 106 10-10 10 10-10 10Z" fill="#dcb194" class="ink"/>
+<rect x="180" y="156" width="156" height="115" rx="29" fill="#aebdca" class="ink"/>
+<rect x="202" y="175" width="112" height="72" rx="17" fill="#f6f3e6" class="thin"/>
+<circle cx="231" cy="198" r="7" fill="#28332e"/>
+<circle cx="285" cy="198" r="7" fill="#28332e"/>
+<path d="M239 218c9 15 29 15 38 0" class="thin"/>
+<path d="M170 192h10m156 0h10m-86 80v14" class="ink"/>
+<rect x="207" y="286" width="102" height="86" rx="21" fill="#aebdca" class="ink"/>
+<path d="M208 308c-31-15-54-8-59 24m160-24c24-13 36-14 54-5" class="ink"/>
+<circle cx="148" cy="342" r="15" fill="#dcb194" class="ink"/>
+<path d="M234 374v23h-32m81-23v23h29" class="ink"/>
+<circle cx="242" cy="310" r="5" fill="#d2b166" class="thin"/>
+<circle cx="258" cy="310" r="5" fill="#839e89" class="thin"/>
+<path d="M230 337h56m-46 12h36" class="thin" opacity=".5"/>
+<rect x="387" y="156" width="155" height="115" rx="29" fill="#a8b9a8" class="ink"/>
+<rect x="409" y="175" width="112" height="72" rx="17" fill="#f6f3e6" class="thin"/>
+<circle cx="438" cy="198" r="7" fill="#28332e"/>
+<circle cx="492" cy="198" r="7" fill="#28332e"/>
+<path d="M446 220c10 12 29 12 38 0" class="thin"/>
+<path d="M377 192h10m155 0h10m-86 80v14" class="ink"/>
+<rect x="414" y="286" width="102" height="86" rx="21" fill="#a8b9a8" class="ink"/>
+<path d="M414 308c-25-11-35-13-51-5m153 7c23-11 38-4 47 11" class="ink"/>
+<circle cx="574" cy="331" r="15" fill="#dcb194" class="ink"/>
+<circle cx="363" cy="305" r="14" fill="#dcb194" class="ink"/>
+<path d="M442 374v23h-32m81-23v23h29" class="ink"/>
+<circle cx="449" cy="310" r="5" fill="#aebdca" class="thin"/>
+<circle cx="465" cy="310" r="5" fill="#d2b166" class="thin"/>
+<path d="M437 337h56m-46 12h36" class="thin" opacity=".5"/>
+<path d="M189 82h86c15 0 24 10 24 24v26l-21 12 3-12h-92c-15 0-24-10-24-25s10-25 24-25Z" fill="#fffcf0" class="thin"/>
+<text x="228" y="118" fill="#28332e" font-family="monospace" font-size="33" font-weight="700">1</text>
+<path d="M441 63h86c15 0 24 10 24 24v26l-21 12 3-12h-92c-15 0-24-10-24-25s10-25 24-25Z" fill="#fffcf0" class="thin"/>
+<text x="476" y="99" fill="#28332e" font-family="monospace" font-size="33" font-weight="700">0</text>
+<path d="m125 191 10-12m-5 28 15-1m425-3 13 4m-15 10 9 13m-222-117 10-11m-8 26 14-3" class="thin" opacity=".4"/>
+
+</svg>

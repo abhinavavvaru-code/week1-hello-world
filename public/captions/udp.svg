@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 480" fill="none" role="img" aria-labelledby="title">
+<title id="title">A paper airplane disappearing between two mailboxes</title>
+<defs>
+ <pattern id="grain" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r=".7" fill="#3b4238" opacity=".10"/></pattern>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#333b2d" flood-opacity=".10"/></filter>
+ <style>.ink{stroke:#28332e;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.thin{stroke:#28332e;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.fine{stroke:#28332e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
+</defs>
+<path fill="#f4f0e5" d="M0 0h720v480H0z"/>
+<path fill="url(#grain)" d="M0 0h720v480H0z"/>
+
+<circle cx="393" cy="228" r="171" fill="#e5e9da"/>
+<circle cx="539" cy="111" r="43" fill="#dbc095"/>
+<path d="M49 404c81-17 156-18 248-5s201 26 370-8" class="thin" opacity=".18"/>
+<ellipse cx="158" cy="403" rx="89" ry="15" fill="#28332e" opacity=".08"/>
+<ellipse cx="584" cy="403" rx="72" ry="13" fill="#28332e" opacity=".08"/>
+<path d="M145 261v138m-34 0h68" class="ink"/>
+<path d="M112 251h116v-69c0-35-27-59-58-59h-27c-31 0-57 25-57 59v43c0 14 12 26 26 26Z" fill="#a7b5ad" class="ink"/>
+<path d="M143 251v-69c0-31 21-56 48-56" class="thin"/>
+<path d="M94 205h49" class="thin"/>
+<path d="M178 153v45m0-45h31v22h-31" fill="#dfa98d" class="ink"/>
+<path d="M567 265v134m-30 0h60" class="ink"/>
+<path d="M531 253h100v-67c0-34-26-59-56-59h-21c-31 0-55 24-55 59v42c0 14 13 25 32 25Z" fill="#b5c2cc" class="ink"/>
+<path d="M554 253v-67c0-31 20-56 45-56" class="thin"/>
+<path d="M604 155v43m0-43h27v22h-27" fill="#d2b46b" class="ink"/>
+<path d="M202 194c24-25 68-37 95-24 43 21 8 54-27 35-19-11-10-45 33-58 49-15 105-5 145 20" class="thin" stroke-dasharray="7 10"/>
+<g transform="translate(337 174) rotate(-12)">
+<path d="m-57 1 125-43L15 39-6 12Z" fill="#fffdf6" class="ink"/>
+<path d="m-6 12 74-54L15 39 5 15Z" fill="#dbc495" class="thin"/>
+<path d="m-6 12 4 33L15 39" fill="#aebcac" class="thin"/>
+</g>
+<path d="m454 201 17-5m-6 22 15 4m-32 4 7 16" class="thin"/>
+<path d="m490 176 8-5m-9 47 8 1m-16 22 5 8" class="fine" opacity=".65"/>
+<circle cx="499" cy="197" r="3" fill="#28332e" opacity=".65"/>
+<circle cx="520" cy="221" r="2" fill="#28332e" opacity=".4"/>
+<path d="m54 107 7-9m-3 19 11-2m534 193 10-9m-7 23 13 2" class="thin" opacity=".35"/>
+
+</svg>
