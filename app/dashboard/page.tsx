@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function Dashboard() {
   const { supabase, user } = await requireUser()
-  const { captions, error } = await loadCaptions(supabase, user.id)
+  const { captions, error } = await loadCaptions(supabase)
   const { data: profile } = await supabase.from('profiles')
     .select('first_name, last_name, avatar_url').eq('id', user.id).maybeSingle()
   const identity = getIdentity(user, profile)
@@ -26,7 +26,7 @@ export default async function Dashboard() {
           <p>Please try again in a moment.</p>
           <RetryButton />
         </div>
-      ) : <CaptionGallery initialCaptions={captions} userId={user.id} mode="history" />}
+      ) : <CaptionGallery initialCaptions={captions} mode="history" />}
       <footer className="page-footer">Your votes, all in one place.<span>Only visible to you.</span></footer>
     </main>
   )

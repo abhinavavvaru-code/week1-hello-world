@@ -3,24 +3,24 @@
 import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { captionVisual, type Caption } from '@/lib/captions'
 
-type Filter = 'all' | 'unrated' | 'up' | 'down'
+type Filter = 'all' | 'unrated' | 'up' | 'down' | 'new'
 
-export default function CaptionGallery({ initialCaptions, userId, mode = 'browse' }: {
+export default function CaptionGallery({ initialCaptions, mode = 'browse', newCaptionIds = [] }: {
   initialCaptions: Caption[]
-  userId: string
   mode?: 'browse' | 'history'
+  newCaptionIds?: string[]
 }) {
   const [captions, setCaptions] = useState(initialCaptions)
   const [serverCaptions, setServerCaptions] = useState(initialCaptions)
-  const [expectedVotes, setExpectedVotes] = useState<Record<number, number>>({})
-  const [filter, setFilter] = useState<Filter>('all')
+  const [expectedVotes, setExpectedVotes] = useState<Record<string, number>>({})
+  const [filter, setFilter] = useState<Filter>(newCaptionIds.length ? 'new' : 'all')
   const [sort, setSort] = useState('latest')
-  const [pendingIds, setPendingIds] = useState<number[]>([])
-  const pending = useRef(new Set<number>())
+  const [pendingIds, setPendingIds] = useState<string[]>([])
+  const pending = useRef(new Set<string>())
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState<string | null>(null)
   const router = useRouter()
   if (serverCaptions !== initialCaptions) {
     setServerCaptions(initialCaptions)
@@ -42,30 +42,32 @@ export default function CaptionGallery({ initialCaptions, userId, mode = 'browse
   const source = history ? myVotes : captions
   const visible = source.filter((caption) => filter === 'all'
     || (filter === 'unrated' && caption.myVote === 0)
+    || (filter === 'new' && newCaptionIds.includes(caption.id))
     || (filter === 'up' && caption.myVote === 1)
     || (filter === 'down' && caption.myVote === -1))
     .sort((a, b) => sort === 'top'
-      ? (b.laughs - b.groans) - (a.laughs - a.groans) || b.id - a.id
-      : history ? (b.votedAt ?? '').localeCompare(a.votedAt ?? '') || b.id - a.id : b.id - a.id)
+      ? (b.laughs - b.groans) - (a.laughs - a.groans) || b.id.localeCompare(a.id)
+      : history ? (b.votedAt ?? '').localeCompare(a.votedAt ?? '') || b.id.localeCompare(a.id) : b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
 
   async function vote(caption: Caption, value: 1 | -1) {
-    if (pending.current.has(caption.id)) return
+    if (pending.current.has(caption.id) || caption.myVote !== 0) return
     pending.current.add(caption.id)
     setPendingIds((ids) => [...ids, caption.id])
-    const next = caption.myVote === value ? 0 : value
+    const next = value
     const previousExpected = expectedVotes[caption.id]
     setExpectedVotes((all) => ({ ...all, [caption.id]: next }))
     setCaptions((all) => all.map((item) => item.id === caption.id ? applyVote(item, next) : item))
     setError('')
     try {
-      const supabase = createClient()
-      const { error: saveError } = next === 0
-        ? await supabase.from('votes').delete().eq('user_id', userId).eq('message_id', caption.id)
-        : await supabase.from('votes').upsert(
-          { user_id: userId, message_id: caption.id, value: next },
-          { onConflict: 'user_id,message_id' },
-        )
-      if (saveError) throw saveError
+      const response = await fetch('/api/votes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captionId: caption.id, value }),
+      })
+      const saved = await response.json()
+      if (!response.ok || (saved.value !== 1 && saved.value !== -1)) throw new Error('Vote failed')
+      setExpectedVotes((all) => ({ ...all, [caption.id]: saved.value }))
+      setCaptions((all) => all.map((item) => item.id === caption.id
+        ? { ...applyVote(item, saved.value), votedAt: saved.created_at } : item))
     } catch {
       setCaptions((all) => all.map((item) => item.id === caption.id ? caption : item))
       setExpectedVotes((all) => {
@@ -82,6 +84,15 @@ export default function CaptionGallery({ initialCaptions, userId, mode = 'browse
     }
   }
 
+  async function copyCaption(caption: Caption) {
+    try {
+      await navigator.clipboard.writeText(caption.content)
+      setCopied(caption.id)
+    } catch {
+      setError('Copy isn’t available here. You can select the caption text to copy it.')
+    }
+  }
+
   return (
     <section aria-label={history ? 'Your caption votes' : 'Caption collection'}>
       {history && (
@@ -93,7 +104,7 @@ export default function CaptionGallery({ initialCaptions, userId, mode = 'browse
       )}
       <div className="collection-toolbar">
         <div className="filter-group" aria-label="Filter captions">
-          {(history ? [['all', 'All votes'], ['up', 'Upvoted'], ['down', 'Downvoted']] : [['all', 'All captions'], ['unrated', 'Not rated']]).map(([value, label]) => (
+          {(history ? [['all', 'All votes'], ['up', 'Upvoted'], ['down', 'Downvoted']] : [...(newCaptionIds.length ? [['new', 'Your new captions']] : []), ['all', 'All captions'], ['unrated', 'Not rated']]).map(([value, label]) => (
             <button key={value} type="button" className="filter-button" aria-pressed={filter === value} onClick={() => setFilter(value as Filter)}>{label}</button>
           ))}
         </div>
@@ -107,14 +118,14 @@ export default function CaptionGallery({ initialCaptions, userId, mode = 'browse
           </label>
         </div>
       </div>
-      <p className="collection-help">{history ? 'Changed your mind? Update a vote below.' : 'Upvote if it lands. Downvote if it doesn’t.'} Click your vote again to undo.</p>
+      <p className="collection-help">{history ? 'Your saved verdicts. One rating per caption keeps the scores fair.' : 'Upvote if it lands. Downvote if it doesn’t. One verdict per caption.'}</p>
       {error && <p className="status status-error" role="alert">{error} <Link href="/login">Sign in</Link></p>}
       {visible.length === 0 ? (
         <div className="empty-state">
           <span className="empty-face" aria-hidden="true">☺</span>
           <h2>{history && myVotes.length === 0 ? 'Your first laugh is waiting.' : filter === 'unrated' ? 'You’ve seen them all.' : 'Nothing here just yet.'}</h2>
-          <p>{history && myVotes.length === 0 ? 'Explore the captions and give a few your verdict. They’ll show up here.' : 'Try another filter or come back for more captions.'}</p>
-          {history ? <Link className="btn btn-primary" href="/">Explore captions <span aria-hidden="true">↗</span></Link> : filter !== 'all' && <button className="btn btn-primary" onClick={() => setFilter('all')}>View all captions</button>}
+          <p>{history && myVotes.length === 0 ? 'Explore the captions and give a few your verdict. They’ll show up here.' : captions.length === 0 ? 'Pick an illustration, add your scene, and let AI write three punchlines.' : 'Try another filter or make something new in the caption lab.'}</p>
+          {history ? <Link className="btn btn-primary" href="/">Explore captions <span aria-hidden="true">↗</span></Link> : filter !== 'all' ? <button className="btn btn-primary" onClick={() => setFilter('all')}>View all captions</button> : <Link className="btn btn-primary" href="/create">Create the first captions <span aria-hidden="true">↗</span></Link>}
         </div>
       ) : (
         <div className="caption-grid">
@@ -125,22 +136,25 @@ export default function CaptionGallery({ initialCaptions, userId, mode = 'browse
               <article key={caption.id} className="caption-card" aria-labelledby={`caption-${caption.id}`}>
                 <div className="caption-image">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={visual.src} alt={visual.alt} width="720" height="480" loading={index < 3 ? 'eager' : 'lazy'} />
-                  <span className="image-index">#{String(caption.id).padStart(2, '0')}</span>
+                  <img src={visual.src || '/captions/earth.svg'} alt={visual.alt} width="720" height="480" loading={index < 3 ? 'eager' : 'lazy'} />
+                  <span className="image-index">AI caption</span>
                 </div>
                 <div className="caption-body">
-                  <p className="caption-category">{visual.category}</p>
+                  <div className="caption-meta">
+                    <p className="caption-category">{visual.category} · {caption.style}</p>
+                    <button type="button" className="caption-copy" onClick={() => copyCaption(caption)} aria-label={`Copy caption: ${caption.content}`} aria-live="polite">{copied === caption.id ? 'Copied ✓' : 'Copy'}</button>
+                  </div>
                   <h2 id={`caption-${caption.id}`} className="caption-text">{caption.content}</h2>
                   <div className="caption-actions">
                     <div className="vote-group">
-                      <button className="vote-button" type="button" aria-label={`Upvote caption ${caption.id}`} aria-pressed={caption.myVote === 1} disabled={busy} onClick={() => vote(caption, 1)}>
+                      <button className="vote-button" type="button" aria-label={`Upvote: ${caption.content}`} aria-pressed={caption.myVote === 1} disabled={busy || caption.myVote !== 0} onClick={() => vote(caption, 1)}>
                         <ArrowIcon /><span>{caption.laughs}</span>
                       </button>
-                      <button className="vote-button vote-down" type="button" aria-label={`Downvote caption ${caption.id}`} aria-pressed={caption.myVote === -1} disabled={busy} onClick={() => vote(caption, -1)}>
+                      <button className="vote-button vote-down" type="button" aria-label={`Downvote: ${caption.content}`} aria-pressed={caption.myVote === -1} disabled={busy || caption.myVote !== 0} onClick={() => vote(caption, -1)}>
                         <ArrowIcon /><span>{caption.groans}</span>
                       </button>
                     </div>
-                    <span className={`vote-note${caption.myVote ? ' voted' : ''}`} aria-live="polite">{busy ? 'Saving…' : caption.myVote === 1 ? 'You upvoted' : caption.myVote === -1 ? 'You downvoted' : 'Your verdict?'}</span>
+                    <span className={`vote-note${caption.myVote ? ' voted' : ''}`} aria-live="polite">{busy ? 'Saving…' : caption.myVote === 1 ? 'Upvote saved' : caption.myVote === -1 ? 'Downvote saved' : 'Your verdict?'}</span>
                   </div>
                 </div>
               </article>

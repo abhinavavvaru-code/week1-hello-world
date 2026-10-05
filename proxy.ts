@@ -25,6 +25,12 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
   const isPublic = path === '/login' || path.startsWith('/auth/')
+  if (!user && path.startsWith('/api/')) {
+    const denied = NextResponse.json({ error: 'Sign in to continue.' }, { status: 401 })
+    response.cookies.getAll().forEach((cookie) => denied.cookies.set(cookie))
+    denied.headers.set('Cache-Control', 'private, no-store')
+    return denied
+  }
   const target = !user && !isPublic ? '/login' : user && path === '/login' ? '/' : null
 
   if (target) {
