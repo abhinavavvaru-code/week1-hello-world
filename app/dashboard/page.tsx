@@ -26,7 +26,7 @@ export default async function Dashboard() {
           <p>Please try again in a moment.</p>
           <RetryButton />
         </div>
-      ) : <CaptionGallery initialCaptions={captions} mode="history" />}
+      ) : <CaptionGallery initialCaptions={captions} mode="history" userId={user.id} />}
       <footer className="page-footer">Your votes, all in one place.<span>Only visible to you.</span></footer>
     </main>
   )

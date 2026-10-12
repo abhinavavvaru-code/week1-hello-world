@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import { CAPTION_STYLES, CAPTION_TOPICS, CAPTION_PERSPECTIVES, topicLabels, perspectiveLabels, type CaptionStyle, type CaptionTopic, type CaptionPerspective } from '@/lib/generation-options'
 
 const images = [
   { id: 'udp', label: 'Left on read', alt: 'A paper airplane carrying a message into the unknown', prompt: 'A message vanishes into the void of the dorm group chat.' },
@@ -13,11 +14,57 @@ const images = [
   { id: 'earth', label: 'Outside era', alt: 'A happy planet Earth enjoying the sunshine', prompt: 'A happy planet enjoys the sunshine while a student finally goes outside in New York.' },
 ] as const
 
-const styles = [
-  { id: 'dry', label: 'Dry', description: 'Understated. Unbothered.' },
-  { id: 'chaotic', label: 'Chaotic', description: 'A little too online.' },
-  { id: 'wholesome', label: 'Wholesome', description: 'Good vibes, good joke.' },
-] as const
+const styleDescriptions: Record<CaptionStyle, { label: string; description: string }> = {
+  dry: { label: 'Dry', description: 'Understated. Unbothered.' },
+  chaotic: { label: 'Chaotic', description: 'A little too online.' },
+  wholesome: { label: 'Wholesome', description: 'Good vibes, good joke.' },
+  wordplay: { label: 'Wordplay', description: 'A pun with a plan.' },
+  roast: { label: 'Roast', description: 'Playful, never personal.' },
+}
+
+type PhotoChoice = { id: string | null; src: string; blob: Blob; title: string; alt: string }
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_PHOTO_BYTES = 3 * 1024 * 1024
+const MAX_UPLOAD_BYTES = 1_000_000
+const MAX_PHOTO_PIXELS = 24_000_000
+
+// Resize before uploading so neither the app nor the captioning service needs
+// the original full-resolution photo. The conversion also removes metadata.
+export async function preparePhoto(file: File): Promise<Blob> {
+  if (!PHOTO_TYPES.includes(file.type)) throw new Error('Choose a JPEG, PNG, or WebP photo.')
+  if (file.size > MAX_PHOTO_BYTES) throw new Error('Choose a photo smaller than 3 MB.')
+  if (file.size === 0) throw new Error('This photo is empty. Choose another file.')
+  const original = URL.createObjectURL(file)
+  try {
+    const image = new Image()
+    image.src = original
+    try { await image.decode() } catch { throw new Error('We could not open this photo. Try another JPEG, PNG, or WebP.') }
+    const width = image.naturalWidth
+    const height = image.naturalHeight
+    if (!width || !height || width * height > MAX_PHOTO_PIXELS) {
+      throw new Error('Choose a photo with no more than 24 megapixels.')
+    }
+    const scale = Math.min(1, 1280 / Math.max(width, height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(width * scale))
+    canvas.height = Math.max(1, Math.round(height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('We could not prepare this photo. Please try another browser.')
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+    for (const quality of [0.86, 0.74, 0.62, 0.5]) {
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((result) => {
+        if (result) resolve(result)
+        else reject(new Error('We could not prepare this photo. Please try again.'))
+      }, 'image/jpeg', quality))
+      if (blob.type === 'image/jpeg' && blob.size <= MAX_UPLOAD_BYTES) return blob
+    }
+    throw new Error('This photo is still too large. Try a simpler or smaller photo.')
+  } finally {
+    URL.revokeObjectURL(original)
+  }
+}
 
 type GenerationResponse = {
   generationId?: string
@@ -27,12 +74,20 @@ type GenerationResponse = {
   code?: string
 }
 
-export default function CaptionLab({ initialRemaining = null, dailyBrief }: {
+export default function CaptionLab({ initialRemaining = null, dailyBrief, initialTopic = 'campus' }: {
   initialRemaining?: number | null
   dailyBrief: string
+  initialTopic?: CaptionTopic
 }) {
   const [imageId, setImageId] = useState<string>('dark-mode')
-  const [style, setStyle] = useState<string>('dry')
+  const [style, setStyle] = useState<CaptionStyle>('dry')
+  const [topic, setTopic] = useState<CaptionTopic>(initialTopic)
+  const [perspective, setPerspective] = useState<CaptionPerspective>('observer')
+  const [photo, setPhoto] = useState<PhotoChoice | null>(null)
+  const [photoConsent, setPhotoConsent] = useState(false)
+  const [preparing, setPreparing] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
   const [prompt, setPrompt] = useState<string>(images[1].prompt)
   const [remaining, setRemaining] = useState(initialRemaining)
   const [busy, setBusy] = useState(false)
@@ -40,10 +95,28 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief }: {
   const [needsLogin, setNeedsLogin] = useState(false)
   const requestId = useRef<string | null>(null)
   const inFlight = useRef(false)
+  const photoInFlight = useRef(false)
+  const photoUrl = useRef<string | null>(null)
+  const uploadController = useRef<AbortController | null>(null)
+  const mounted = useRef(true)
   const router = useRouter()
   const formId = useId()
   const selected = images.find((image) => image.id === imageId) ?? images[1]
   const exhausted = remaining === 0
+  const photoSelected = imageId.startsWith('upload-')
+  const locked = busy || preparing || uploading
+  const selectedAlt = photoSelected && photo ? photo.alt || 'Your uploaded photo' : selected.alt
+  const selectedSrc = photoSelected && photo ? photo.src : `/captions/${selected.id}.svg`
+  const selectedTitle = photoSelected && photo ? photo.title || 'Your photo' : selected.label
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      uploadController.current?.abort()
+      if (photoUrl.current) URL.revokeObjectURL(photoUrl.current)
+    }
+  }, [])
 
   function edit() {
     requestId.current = null
@@ -54,14 +127,83 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief }: {
   function selectImage(nextId: string) {
     const next = images.find((image) => image.id === nextId)
     if (!next) return
-    if (prompt === selected.prompt) setPrompt(next.prompt)
+    if (prompt === selected.prompt || (photoSelected && prompt === '')) setPrompt(next.prompt)
     setImageId(nextId)
     edit()
   }
 
+  async function selectPhoto(file: File | undefined) {
+    if (!file || locked || photoInFlight.current) return
+    photoInFlight.current = true
+    setPreparing(true)
+    setPhotoError('')
+    try {
+      const blob = await preparePhoto(file)
+      if (!mounted.current) return
+      const src = URL.createObjectURL(blob)
+      if (photoUrl.current) URL.revokeObjectURL(photoUrl.current)
+      photoUrl.current = src
+      const title = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 80) || 'Your photo'
+      setPhoto({ id: null, src, blob, title, alt: '' })
+      setPhotoConsent(false)
+      setImageId('upload-pending')
+      if (prompt === selected.prompt) setPrompt('')
+      edit()
+    } catch (failure) {
+      if (mounted.current) setPhotoError(failure instanceof Error ? failure.message : 'We could not prepare this photo. Try another file.')
+    } finally {
+      photoInFlight.current = false
+      if (mounted.current) setPreparing(false)
+    }
+  }
+
+  async function uploadPhoto() {
+    if (!photo || !photoConsent || locked || photoInFlight.current) return
+    photoInFlight.current = true
+    setUploading(true)
+    setPhotoError('')
+    setNeedsLogin(false)
+    const controller = new AbortController()
+    uploadController.current = controller
+    try {
+      const body = new FormData()
+      body.append('image', photo.blob, 'photo.jpg')
+      body.append('title', photo.title.trim().slice(0, 80) || 'Your photo')
+      body.append('alt', photo.alt.trim().slice(0, 250))
+      const response = await fetch('/api/images', { method: 'POST', body, signal: controller.signal })
+      const result: unknown = await response.json().catch(() => null)
+      if (!mounted.current) return
+      if (response.status === 401) {
+        setNeedsLogin(true)
+        throw new Error('Your session has expired. Sign in to upload your photo.')
+      }
+      if (!response.ok || !result || typeof result !== 'object' || Array.isArray(result)) {
+        throw new Error(response.status === 429 ? 'You have reached the photo limit for today. Try a preset picture.' : 'Your photo did not upload. Please try again.')
+      }
+      const saved = result as { imageId?: unknown; imageSrc?: unknown; imageAlt?: unknown }
+      if (typeof saved.imageId !== 'string' || !/^upload-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.imageId)
+        || typeof saved.imageSrc !== 'string' || typeof saved.imageAlt !== 'string') {
+        throw new Error('We could not confirm the upload. Please try again.')
+      }
+      setPhoto({ ...photo, id: saved.imageId, alt: saved.imageAlt })
+      setImageId(saved.imageId)
+      edit()
+    } catch (failure) {
+      if (mounted.current && !controller.signal.aborted) setPhotoError(failure instanceof Error ? failure.message : 'Your photo did not upload. Please try again.')
+    } finally {
+      photoInFlight.current = false
+      uploadController.current = null
+      if (mounted.current) setUploading(false)
+    }
+  }
+
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (inFlight.current || exhausted) return
+    if (inFlight.current || exhausted || preparing || uploading) return
+    if (photoSelected && (!photo?.id || !photoConsent)) {
+      setError('Upload your photo and confirm the photo settings before generating.')
+      return
+    }
     const scene = prompt.trim()
     if (scene.length < 5 || scene.length > 500) {
       setError('Give the AI a little context: between 5 and 500 characters.')
@@ -77,7 +219,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief }: {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId: requestId.current, imageId, style, prompt: scene }),
+        body: JSON.stringify({ requestId: requestId.current, imageId, style, topic, perspective, prompt: scene }),
       })
       const body: unknown = await response.json().catch(() => null)
       const result = typeof body === 'object' && body !== null && !Array.isArray(body)
@@ -132,31 +274,66 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief }: {
 
   return (
     <div className="lab-layout">
-      <aside className="lab-preview" aria-label="Your selected illustration">
+      <aside className="lab-preview" aria-label="Your selected picture">
         <div className="lab-preview-image">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/captions/${selected.id}.svg`} width="720" height="480" alt={selected.alt} />
+          <img src={selectedSrc} width="720" height="480" alt={selectedAlt} />
           <span className="lab-image-label">YOUR CANVAS</span>
         </div>
         <div className="lab-preview-body">
           <p className="eyebrow">PICTURE THIS</p>
-          <h2>{selected.label}</h2>
-          <p>One illustration. Three AI punchlines. The members decide what lands.</p>
+          <h2>{selectedTitle}</h2>
+          <p>Your picture. Three short AI punchlines. The members decide what lands.</p>
         </div>
         <div className="lab-daily">
           <p className="eyebrow"><span className="live-dot" /> TODAY’S BRIEF</p>
           <p className="lab-brief">{dailyBrief}</p>
-          <button type="button" className="text-link" disabled={busy} onClick={() => { setPrompt(dailyBrief); edit() }}>
+          <button type="button" className="text-link" disabled={locked} onClick={() => { setPrompt(dailyBrief); edit() }}>
             Try this scene <span aria-hidden="true">↗</span>
           </button>
           <p className="lab-daily-note">A fresh idea every day, inspired by campus life and NYC weekends.</p>
         </div>
       </aside>
 
-      <form className="lab-form" onSubmit={generate} aria-busy={busy}>
-        <fieldset className="lab-fieldset" disabled={busy}>
+      <form className="lab-form" onSubmit={generate} aria-busy={locked}>
+        <fieldset className="lab-fieldset" disabled={locked}>
           <legend><span className="lab-step">01</span> Pick your picture</legend>
+          <div className="lab-upload-box">
+            <label className="lab-upload-label" htmlFor={`${formId}-photo`}><span aria-hidden="true">↥</span> Add your own photo</label>
+            <input id={`${formId}-photo`} className="lab-file-input" type="file" accept="image/jpeg,image/png,image/webp"
+              aria-describedby={`${formId}-photo-hint`} onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+                event.currentTarget.value = ''
+                void selectPhoto(file)
+              }} />
+            <p id={`${formId}-photo-hint`}>JPEG, PNG, or WebP · up to 3 MB. We resize it before uploading.</p>
+            {preparing && <p className="lab-upload-status" role="status">Preparing your photo…</p>}
+            {photo && (
+              <div className="lab-photo-details">
+                <label htmlFor={`${formId}-photo-title`}>Photo title</label>
+                <input id={`${formId}-photo-title`} value={photo.title} maxLength={80} disabled={Boolean(photo.id)} onChange={(event) => { setPhoto({ ...photo, title: event.target.value }); edit() }} />
+                <label htmlFor={`${formId}-photo-alt`}>Describe what is visible <span>(optional)</span></label>
+                <input id={`${formId}-photo-alt`} value={photo.alt} maxLength={250} disabled={Boolean(photo.id)} placeholder="A coffee cup beside a pile of books" onChange={(event) => { setPhoto({ ...photo, alt: event.target.value }); edit() }} />
+                <label className="lab-photo-consent"><input type="checkbox" checked={photoConsent} onChange={(event) => { setPhotoConsent(event.target.checked); edit() }} />
+                  <span>I’m okay with DeepSeek reading this photo’s visible content for captions, and sharing the photo with signed-in members when I post.</span>
+                </label>
+                <p className="lab-photo-note">Use a photo you have permission to share. Your written prompt stays private.</p>
+                {!photo.id ? <button type="button" className="btn btn-sm" disabled={locked || !photoConsent} onClick={uploadPhoto}>{uploading ? 'Uploading your photo…' : 'Upload and use photo'}</button>
+                  : <p className="lab-upload-status" role="status">Photo ready. Choose your style and set the scene below.</p>}
+              </div>
+            )}
+            {photoError && <p className="status status-error" role="alert">{photoError}{needsLogin && <> <Link href="/login">Sign in</Link></>}</p>}
+          </div>
+          <p className="lab-preset-label">{photo ? 'Choose your photo or an illustration' : 'Or start with an illustration'}</p>
           <div className="lab-image-options">
+            {photo && <label className="lab-image-option">
+              <input type="radio" name="image" value={photo.id || 'upload-pending'} checked={photoSelected} onChange={() => { if (prompt === selected.prompt) setPrompt(''); setImageId(photo.id || 'upload-pending'); edit() }} />
+              <span className="lab-image-choice">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo.src} width="180" height="120" alt="" />
+                <span>Your photo</span><span className="lab-selection" aria-hidden="true">✓</span>
+              </span>
+            </label>}
             {images.map((image) => (
               <label key={image.id} className="lab-image-option">
                 <input type="radio" name="image" value={image.id} checked={imageId === image.id} onChange={() => selectImage(image.id)} />
@@ -171,10 +348,10 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief }: {
           </div>
         </fieldset>
 
-        <fieldset className="lab-fieldset" disabled={busy}>
+        <fieldset className="lab-fieldset" disabled={locked}>
           <legend><span className="lab-step">02</span> Choose the energy</legend>
           <div className="lab-style-options">
-            {styles.map((item) => (
+            {CAPTION_STYLES.map((id) => ({ id, ...styleDescriptions[id] })).map((item) => (
               <label key={item.id} className="lab-style-option">
                 <input type="radio" name="style" value={item.id} checked={style === item.id} onChange={() => { setStyle(item.id); edit() }} />
                 <span><strong>{item.label}</strong><small>{item.description}</small></span>
@@ -183,21 +360,37 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief }: {
           </div>
         </fieldset>
 
+        <fieldset className="lab-fieldset lab-angle-fields" disabled={locked}>
+          <legend><span className="lab-step">03</span> Find your angle</legend>
+          <div className="lab-angle-options">
+            <label htmlFor={`${formId}-topic`}>Topic
+              <select id={`${formId}-topic`} value={topic} onChange={(event) => { setTopic(event.target.value as CaptionTopic); edit() }}>
+                {CAPTION_TOPICS.map((value) => <option key={value} value={value}>{topicLabels[value]}</option>)}
+              </select>
+            </label>
+            <label htmlFor={`${formId}-perspective`}>Whose point of view?
+              <select id={`${formId}-perspective`} value={perspective} onChange={(event) => { setPerspective(event.target.value as CaptionPerspective); edit() }}>
+                {CAPTION_PERSPECTIVES.map((value) => <option key={value} value={value}>{perspectiveLabels[value]}</option>)}
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
         <div className="lab-scene">
-          <label htmlFor={`${formId}-prompt`}><span className="lab-step">03</span> Set the scene</label>
-          <p id={`${formId}-hint`}>Give the AI a situation, an inside joke, or a little campus context.</p>
-          <textarea id={`${formId}-prompt`} name="prompt" value={prompt} minLength={5} maxLength={500} required disabled={busy}
+          <label htmlFor={`${formId}-prompt`}><span className="lab-step">04</span> Set the scene</label>
+          <p id={`${formId}-hint`}>Give the AI a situation or an inside joke. Each caption stays punchy: 8–10 words.</p>
+          <textarea id={`${formId}-prompt`} name="prompt" value={prompt} minLength={5} maxLength={500} required disabled={locked}
             aria-describedby={`${formId}-hint ${formId}-count`} rows={4}
             onChange={(event) => { setPrompt(event.target.value); edit() }} />
           <p id={`${formId}-count`} className="lab-character-count">{prompt.length} / 500</p>
         </div>
 
         <div className="lab-submit-area">
-          <button type="submit" className="btn btn-primary lab-submit" disabled={busy || exhausted}>
+          <button type="submit" className="btn btn-primary lab-submit" disabled={locked || exhausted || (photoSelected && (!photo?.id || !photoConsent))}>
             {busy ? <><span className="lab-spinner" aria-hidden="true" /> Finding the punchline…</> : <><SparkIcon /> Generate 3 captions <span aria-hidden="true">↗</span></>}
           </button>
-          <p className="lab-allowance">{remaining === null ? 'Up to 5 generations a day.' : `${remaining} of 5 generations left today.`} Three captions each.</p>
-          <p className="lab-privacy">Your scene stays private. Your AI captions are shared with signed-in members and ready to rate.</p>
+          <p className="lab-allowance">{remaining === null ? 'Up to 5 generations a day.' : `${remaining} of 5 generations left today.`} Three captions each, 8–10 words apiece.</p>
+          <p className="lab-privacy">Your prompt and context stay private. Your picture and AI captions are shared with signed-in members when you generate.</p>
           <div aria-live="polite" role="status" className="lab-progress">{busy ? 'Making and saving your captions. Keep this page open for a moment.' : ''}</div>
           {error && <p className="status status-error" role="alert">{error}{needsLogin && <> <Link href="/login">Sign in</Link></>}</p>}
         </div>

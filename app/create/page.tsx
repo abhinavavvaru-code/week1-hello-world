@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { requireUser } from '@/lib/auth'
 import CaptionLab from '@/components/CaptionLab'
+import { CAPTION_TOPICS, type CaptionTopic } from '@/lib/generation-options'
 import './create.css'
 
 export const dynamic = 'force-dynamic'
@@ -21,9 +22,13 @@ const briefs = [
   'A student plans an early night, then remembers the internet exists.',
 ]
 
-export default async function CreatePage() {
+export default async function CreatePage({ searchParams }: {
+  searchParams: Promise<{ topic?: string | string[] }>
+}) {
   const { supabase } = await requireUser()
   const { data: allowance } = await supabase.rpc('get_generation_allowance')
+  const { topic } = await searchParams
+  const initialTopic = typeof topic === 'string' && CAPTION_TOPICS.includes(topic as CaptionTopic) ? topic as CaptionTopic : 'campus'
   const today = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(new Date())
   const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(today)
   return (
@@ -32,11 +37,11 @@ export default async function CreatePage() {
         <div>
           <p className="eyebrow"><span className="live-dot" /> CAPTION LAB</p>
           <h1>Make something <span>funny.</span></h1>
-          <p className="lede">You set the scene. AI finds the punchline.</p>
+          <p className="lede">Your photo. Your angle. Three short AI punchlines.</p>
         </div>
         <Link className="text-link" href="/">Explore captions <span aria-hidden="true">↗</span></Link>
       </section>
-      <CaptionLab dailyBrief={briefs[Math.max(0, day)]} initialRemaining={typeof allowance === 'number' ? allowance : null} />
+      <CaptionLab key={initialTopic} dailyBrief={briefs[Math.max(0, day)]} initialTopic={initialTopic} initialRemaining={typeof allowance === 'number' ? allowance : null} />
       <footer className="page-footer">A little campus life. A little internet brain.<span>Made for the Humor Project.</span></footer>
     </main>
   )

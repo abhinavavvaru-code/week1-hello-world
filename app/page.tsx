@@ -6,10 +6,10 @@ import RetryButton from '@/components/RetryButton'
 
 export const dynamic = 'force-dynamic'
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ generation?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ generation?: string; author?: string }> }) {
   const { supabase, user } = await requireUser()
   const { captions, error } = await loadCaptions(supabase)
-  const { generation } = await searchParams
+  const { generation, author } = await searchParams
   let newCaptionIds: string[] = []
   if (typeof generation === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(generation)) {
     const { data: mine } = await supabase.from('caption_generations').select('id')
@@ -25,10 +25,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
         <div>
           <p className="eyebrow"><span className="live-dot" /> THE HUMOR PROJECT</p>
           <h1>Find your <span>funny.</span></h1>
-          <p className="lede">AI writes the punchlines. You decide what lands.</p>
+          <p className="lede">Your photos. Short punchlines. A community with opinions.</p>
         </div>
-        <Link className="btn btn-primary" href="/create">Make some funny <span aria-hidden="true">↗</span></Link>
+        <div className="feed-links"><a className="btn btn-ghost" href="#gallery">Browse gallery ↓</a><Link className="btn btn-primary" href="/create">Create a post <span aria-hidden="true">↗</span></Link></div>
       </section>
+      <div id="gallery" className="gallery-anchor" />
       {error ? (
         <div className="empty-state" role="alert">
           <h2>The captions couldn&apos;t load.</h2>
@@ -37,7 +38,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
         </div>
       ) : <>
         {newCaptionIds.length === 3 && <p className="generation-saved" role="status">Three fresh captions, saved and ready for your verdict.</p>}
-        <CaptionGallery initialCaptions={captions} newCaptionIds={newCaptionIds} />
+        <CaptionGallery initialCaptions={captions} newCaptionIds={newCaptionIds} userId={user.id} initialAuthor={typeof author === 'string' && /^[0-9a-f-]{36}$/i.test(author) ? author : ''} />
       </>}
       <footer className="page-footer">AI captions. Human taste.<span>Made for the Humor Project.</span></footer>
     </main>

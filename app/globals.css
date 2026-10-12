@@ -226,3 +226,49 @@ h1, h2, p { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Week 5: finding, rating, and taking your captions with you. */
+.feed-links {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.gallery-anchor {scroll-margin-top:110px}
+.gallery-filters {display:grid;grid-template-columns:minmax(230px,2fr) repeat(3,minmax(110px,1fr));gap:14px;margin:24px 0 0}
+.gallery-filters label {display:flex;flex-direction:column;gap:8px;min-width:0}
+.gallery-filters label>span {color:var(--muted);font-size:11px}
+.gallery-filters input,.gallery-filters select {width:100%;min-width:0;height:44px;border:1px solid var(--line);border-radius:9px;padding:0 12px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px}
+.gallery-filters input::placeholder {color:var(--muted)}
+.clear-filters {margin-top:14px}
+.ranking-note {color:var(--muted);font-size:12px;line-height:1.6;margin-top:18px}
+.caption-author {display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);margin-bottom:14px}
+.caption-author button {padding:0;border:0;background:transparent;color:var(--ink);font:inherit;text-decoration:underline;text-underline-offset:3px}
+.caption-author>span {margin-left:auto;font-size:10px}
+.caption-select {position:absolute;bottom:12px;left:12px;display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:7px;background:#f3efdf;color:#17180f;font-size:11px;cursor:pointer}
+.caption-select input {accent-color:#8b6815;width:16px;height:16px}
+.caption-score {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:auto 0 14px;font-size:12px;color:var(--muted)}
+.caption-score strong {color:var(--ink);font-size:16px}
+.caption-score .text-link {font-size:11px}
+.caption-actions {display:flex;flex-direction:column;align-items:stretch;gap:11px}
+.vote-group {display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.vote-button {padding:11px 8px;font-size:12px;min-height:46px;color:var(--ink);border-color:var(--muted);background:var(--surface-soft);gap:6px}
+.vote-button strong {margin-left:auto;padding-left:3px}
+.vote-button:disabled:not([aria-pressed='true']) {opacity:.5}
+.vote-button:not(:disabled):hover {border-color:var(--accent)}
+.vote-note {font-size:11px;text-align:center;min-height:15px}
+.selection-toolbar {display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px;margin:20px 0;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px;font-size:13px}
+.selection-toolbar .btn {padding:9px 12px;min-height:40px;font-size:12px}
+.gallery-more {display:flex;justify-content:center;margin-top:32px}
+.week5-login {grid-template-columns:minmax(0,580px) minmax(0,470px);gap:70px;justify-content:center;padding:60px 40px 100px}
+.login-intro h2 {font-size:54px;letter-spacing:-2px;line-height:1.1;margin:16px 0 18px}
+.login-intro h2 span {color:var(--accent)}
+.login-intro>p:not(.eyebrow) {color:var(--muted);font-size:16px;line-height:1.5}
+.login-demo {margin:26px 0;border-radius:16px;border:1px solid var(--line);overflow:hidden;background:var(--surface)}
+.login-demo img {display:block;width:100%;height:220px;object-fit:cover}
+.login-demo p {font-size:21px;line-height:1.4;padding:22px 24px 8px}
+.login-demo small {display:block;color:var(--muted);padding:0 24px 22px;font-size:11px}
+.login-steps {display:flex;justify-content:space-between;gap:14px;font-size:11px;color:var(--muted)}
+.week5-login .login-card {align-self:center;width:100%}
+@media(max-width:1050px) {.week5-login {gap:36px}.login-intro h2{font-size:44px}.nav-kicker{display:none}}
+@media(max-width:760px) {.gallery-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.gallery-search{grid-column:1/-1}.gallery-filters label:last-child{grid-column:1/-1}.week5-login{grid-template-columns:minmax(0,500px);gap:30px;padding:35px 24px 96px}.login-demo{display:none}.login-intro h2{font-size:40px}.login-intro .eyebrow{font-size:9px}.login-steps{margin-top:22px}.feed-links{width:100%}.feed-links .btn{flex:1;font-size:12px;justify-content:center;padding:12px 10px}.filter-group{flex-wrap:wrap}.nav-link{font-size:11px;padding:11px 7px}.nav-main{gap:4px}.caption-text{margin-bottom:22px}.gallery-filters input{font-size:16px}.selection-toolbar{gap:8px}}
+.gallery-filters {grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start}
+.gallery-advanced {padding-top:24px;min-width:0}
+.gallery-advanced summary {min-height:44px;border:1px solid var(--line);border-radius:9px;padding:11px 14px;font-size:13px;cursor:pointer;background:var(--surface)}
+.gallery-advanced-fields {display:grid;gap:12px;margin-top:14px}
+@media(max-width:760px) {.gallery-filters {grid-template-columns:minmax(0,1fr);gap:12px}.gallery-advanced {padding-top:0}.gallery-search,.gallery-filters label:last-child{grid-column:auto}.gallery-advanced-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.gallery-advanced-fields label:last-child{grid-column:1/-1}}

@@ -40,6 +40,27 @@
 .lab-style-option input:checked + span strong { color: var(--accent); }
 .lab-fieldset:disabled label { cursor: wait; }
 .lab-fieldset:disabled { opacity: .65; }
+.lab-upload-box { padding: 17px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); margin-bottom: 18px; }
+.lab-upload-label { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 550; margin-bottom: 12px; }
+.lab-upload-label > span { color: var(--accent); font-size: 21px; line-height: 1; }
+.lab-file-input { display: block; width: 100%; max-width: 100%; color: var(--muted); font-size: 11px; }
+.lab-file-input::file-selector-button { border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); color: var(--ink); padding: 8px 11px; margin-right: 10px; font: inherit; cursor: pointer; }
+.lab-upload-box > p { color: var(--muted); font-size: 10px; margin-top: 10px; line-height: 1.6; }
+.lab-upload-status { color: var(--accent) !important; font-size: 11px; margin-top: 12px; line-height: 1.6; }
+.lab-photo-details { display: grid; gap: 8px; margin-top: 17px; padding-top: 16px; border-top: 1px solid var(--line); }
+.lab-photo-details > label:not(.lab-photo-consent) { color: var(--muted); font-size: 11px; }
+.lab-photo-details > label > span { font-size: 10px; }
+.lab-photo-details > input { width: 100%; min-width: 0; font: inherit; font-size: 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); padding: 9px 11px; margin-bottom: 4px; }
+.lab-photo-details > input:disabled { opacity: .65; }
+.lab-photo-consent { display: flex; gap: 9px; align-items: flex-start; margin-top: 7px; line-height: 1.6; cursor: pointer; }
+.lab-photo-consent input { accent-color: var(--yellow); flex: 0 0 auto; width: 16px; height: 16px; margin: 3px 0 0; }
+.lab-photo-consent > span { color: var(--muted); font-size: 11px !important; }
+.lab-photo-note { font-size: 10px; color: var(--muted); line-height: 1.6; margin: 0 0 5px 25px; }
+.lab-photo-details > .btn { width: fit-content; margin-top: 4px; }
+.lab-preset-label { font-size: 10px; color: var(--muted); margin-bottom: 12px; }
+.lab-angle-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lab-angle-options label { display: flex; flex-direction: column; gap: 7px; font-size: 11px; color: var(--muted); }
+.lab-angle-options select { width: 100%; min-width: 0; border: 1px solid var(--line); color: var(--ink); background: var(--surface); border-radius: 8px; font-size: 12px; padding: 10px 11px; }
 .lab-scene > label { margin-bottom: 7px; }
 .lab-scene > p:not(.lab-character-count) { color: var(--muted); font-size: 11px; margin-bottom: 14px; }
 .lab-scene textarea { display: block; width: 100%; min-height: 112px; max-height: 360px; resize: vertical; font: inherit; font-size: 13px; line-height: 1.6; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); padding: 14px 16px; }
@@ -86,4 +107,6 @@
   .lab-image-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lab-style-options { grid-template-columns: 1fr; }
   .lab-style-option > span { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .lab-angle-options { grid-template-columns: 1fr; }
+  .lab-upload-box { padding: 14px; }
 }

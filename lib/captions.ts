@@ -8,6 +8,14 @@ export type Caption = {
   groans: number
   myVote: number
   votedAt: string | null
+  authorId: string
+  authorName: string
+  imageSrc: string
+  imageAlt: string
+  topic: string
+  perspective: string
+  weekUpvotes: number
+  monthUpvotes: number
 }
 
 export const captionImages = [
@@ -20,7 +28,8 @@ export const captionImages = [
 ] as const
 
 // The persisted image ID links every generated caption to its chosen illustration.
-export function captionVisual(caption: Pick<Caption, 'imageId'>) {
+export function captionVisual(caption: Pick<Caption, 'imageId' | 'imageSrc' | 'imageAlt'>) {
+  if (caption.imageSrc) return {src:caption.imageSrc, alt:caption.imageAlt || 'A member-uploaded photo', category:'Your photo'}
   const visual = captionImages.find((item) => item.id === caption.imageId)
   return visual ? { src: `/captions/${visual.id}.svg`, alt: visual.alt, category: visual.category }
     : { src: '', alt: 'Caption illustration unavailable', category: 'AI caption' }

@@ -1,7 +1,8 @@
+import { Buffer } from 'node:buffer'
 import { createClient } from '@/lib/supabase/server'
+import { CAPTION_PERSPECTIVES, CAPTION_STYLES, CAPTION_TOPICS } from '@/lib/generation-options'
 import {
   CAPTION_IMAGE_IDS,
-  CAPTION_STYLES,
   CaptionGenerationError,
   captionSystemPrompt,
   generateCaptions,
@@ -12,6 +13,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 45
 
 const MAX_BODY_BYTES = 8 * 1024
+const MAX_IMAGE_BYTES = 1024 * 1024
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function reply(body: Record<string, unknown>, status = 200) {
@@ -66,15 +68,24 @@ async function readBody(request: Request) {
 
 function validateInput(data: unknown): GenerateCaptionInput | null {
   if (!isRecord(data) || typeof data.requestId !== 'string' || !UUID.test(data.requestId)) return null
-  if (typeof data.imageId !== 'string' || !CAPTION_IMAGE_IDS.some((id) => id === data.imageId)) return null
+  if (typeof data.imageId !== 'string') return null
+  const isPreset = CAPTION_IMAGE_IDS.some((id) => id === data.imageId)
+  const isUpload = data.imageId.startsWith('upload-') && UUID.test(data.imageId.slice(7))
+  if (!isPreset && !isUpload) return null
   if (typeof data.style !== 'string' || !CAPTION_STYLES.some((style) => style === data.style)) return null
+  const topic = data.topic === undefined ? 'campus' : data.topic
+  const perspective = data.perspective === undefined ? 'observer' : data.perspective
+  if (typeof topic !== 'string' || !CAPTION_TOPICS.some((value) => value === topic)) return null
+  if (typeof perspective !== 'string' || !CAPTION_PERSPECTIVES.some((value) => value === perspective)) return null
   if (typeof data.prompt !== 'string') return null
   const prompt = data.prompt.trim()
   if (prompt.length < 1 || prompt.length > 500 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(prompt)) return null
   return {
     requestId: data.requestId,
-    imageId: data.imageId as GenerateCaptionInput['imageId'],
+    imageId: (isUpload ? data.imageId.toLowerCase() : data.imageId) as GenerateCaptionInput['imageId'],
     style: data.style as GenerateCaptionInput['style'],
+    topic: topic as GenerateCaptionInput['topic'],
+    perspective: perspective as GenerateCaptionInput['perspective'],
     prompt,
   }
 }
@@ -87,7 +98,7 @@ function databaseFailure(error: { code?: string; message?: string }) {
     return failure('You have used today’s five generations. Come back tomorrow for a fresh round.', 'daily_limit', 429)
   }
   if (error.code === '42501') return failure('Sign in again to generate captions.', 'unauthorized', 401)
-  if (['PGRST202', 'PGRST205', '42883', '42P01'].includes(error.code ?? '')) {
+  if (['PGRST202', 'PGRST204', 'PGRST205', '42703', '42883', '42P01'].includes(error.code ?? '')) {
     return failure('The caption lab is being set up. Please try again later.', 'setup_required', 503)
   }
   return failure('We couldn’t save this generation. Please try again.', 'save_failed', 503)
@@ -116,10 +127,12 @@ export async function POST(request: Request) {
   }
 
   let supabase: Awaited<ReturnType<typeof createClient>>
+  let userId: string
   try {
     supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) return failure('Sign in to generate captions.', 'unauthorized', 401)
+    userId = user.id
   } catch {
     return failure('Sign in again to generate captions.', 'unauthorized', 401)
   }
@@ -128,31 +141,60 @@ export async function POST(request: Request) {
   if (body.error === 'too_large') return failure('This request is too large.', 'invalid_request', 413)
   if (body.error) return failure('Send a valid caption request.', 'invalid_request', 400)
   const input = validateInput(body.data)
-  if (!input) return failure('Choose an illustration and tone, then add up to 500 characters of context.', 'invalid_request', 400)
+  if (!input) return failure('Choose a picture, tone, topic, and point of view, then add up to 500 characters of context.', 'invalid_request', 400)
 
   const apiKey = process.env.DEEPSEEK_API_KEY?.trim()
-  const model = process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-flash'
-  if (!apiKey || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(model)) {
+  const model = 'deepseek-flash'
+  if (!apiKey) {
     return failure('The caption lab is being set up. Please try again later.', 'setup_required', 503)
   }
 
-  const systemPrompt = captionSystemPrompt(input)
-  const { data: reservationData, error: reservationError } = await supabase.rpc('reserve_caption_generation', {
-    p_request_id: input.requestId,
-    p_image_id: input.imageId,
-    p_prompt: input.prompt,
-    p_style: input.style,
-    p_system_prompt: systemPrompt,
-    p_model: model,
-  })
-  if (reservationError) return databaseFailure(reservationError)
+  let uploadedImage: { scene: string; alt: string; storagePath: string } | undefined
+  if (input.imageId.startsWith('upload-')) {
+    try {
+      const { data: image, error } = await supabase.from('caption_images')
+        .select('id, owner_id, storage_path, alt, scene').eq('id', input.imageId).maybeSingle()
+      if (error) return databaseFailure(error)
+      if (!isRecord(image) || image.id !== input.imageId || image.owner_id !== userId
+        || image.storage_path !== `${userId}/${input.imageId.slice(7)}.jpg`) {
+        return failure('Choose a photo you uploaded, or upload it again.', 'invalid_image', 400)
+      }
+      uploadedImage = {
+        scene: typeof image.scene === 'string' ? image.scene.slice(0, 1000) : '',
+        alt: typeof image.alt === 'string' ? image.alt.slice(0, 300) : 'Uploaded photo',
+        storagePath: image.storage_path,
+      }
+    } catch {
+      return failure('We couldn’t load your photo. Please try again.', 'image_unavailable', 503)
+    }
+  }
+
+  const systemPrompt = captionSystemPrompt(input, uploadedImage)
+  let reservationData: unknown
+  try {
+    const { data, error } = await supabase.rpc('reserve_caption_generation_v5', {
+      p_request_id: input.requestId,
+      p_image_id: input.imageId,
+      p_prompt: input.prompt,
+      p_style: input.style,
+      p_topic: input.topic,
+      p_perspective: input.perspective,
+      p_system_prompt: systemPrompt,
+      p_model: model,
+    })
+    if (error) return databaseFailure(error)
+    reservationData = data
+  } catch {
+    return databaseFailure({})
+  }
   const reservation: unknown = Array.isArray(reservationData) ? reservationData[0] : null
   if (!isRecord(reservation) || typeof reservation.id !== 'string' || !UUID.test(reservation.id)
     || typeof reservation.is_new !== 'boolean') {
     return failure('We couldn’t start this generation. Please try again.', 'save_failed', 503)
   }
   const generationId = reservation.id
-  if (reservation.image_id !== input.imageId || reservation.style !== input.style || reservation.prompt !== input.prompt) {
+  if (reservation.image_id !== input.imageId || reservation.style !== input.style || reservation.prompt !== input.prompt
+    || reservation.topic !== input.topic || reservation.perspective !== input.perspective) {
     return failure('This request has already been used. Start a fresh generation.', 'request_conflict', 409)
   }
 
@@ -170,9 +212,30 @@ export async function POST(request: Request) {
     return failure('Your captions are still being generated. Wait a moment, then try again.', 'generation_pending', 409)
   }
 
+  let imageDataUrl: string | undefined
+  if (uploadedImage) {
+    try {
+      const { data, error } = await supabase.storage.from('caption-uploads').download(uploadedImage.storagePath)
+      if (error || !data || data.size < 4 || data.size > MAX_IMAGE_BYTES) {
+        await markFailed(supabase, generationId)
+        return failure('We couldn’t read your photo. Upload it again and try once more.', 'invalid_image', 400)
+      }
+      const bytes = new Uint8Array(await data.arrayBuffer())
+      if (bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff
+        || bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) {
+        await markFailed(supabase, generationId)
+        return failure('This photo couldn’t be read as a JPEG. Upload it again.', 'invalid_image', 400)
+      }
+      imageDataUrl = `data:image/jpeg;base64,${Buffer.from(bytes).toString('base64')}`
+    } catch {
+      await markFailed(supabase, generationId)
+      return failure('We couldn’t load your photo. Please try again.', 'image_unavailable', 503)
+    }
+  }
+
   let captions: [string, string, string]
   try {
-    captions = await generateCaptions(input, { apiKey, model, systemPrompt })
+    captions = await generateCaptions(input, { apiKey, model, systemPrompt, imageDataUrl })
   } catch (error) {
     await markFailed(supabase, generationId)
     if (error instanceof CaptionGenerationError && error.code === 'provider_busy') {
@@ -185,7 +248,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { data, error } = await supabase.rpc('complete_caption_generation', {
+    const { data, error } = await supabase.rpc('complete_caption_generation_v5', {
       p_generation_id: generationId,
       p_captions: captions,
     })
