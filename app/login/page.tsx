@@ -1,16 +1,17 @@
 import { redirect } from 'next/navigation'
 import { getAuth } from '@/lib/auth'
+import { safeAuthReturn } from '@/lib/auth-return'
 import LoginButton from './LoginButton'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Login({ searchParams }: {
-  searchParams: Promise<{ error?: string | string[] }>
+  searchParams: Promise<{ error?: string | string[]; next?: string | string[] }>
 }) {
-  const { user } = await getAuth()
-  if (user) redirect('/')
-
   const params = await searchParams
+  const returnTo = safeAuthReturn(params.next)
+  const { user } = await getAuth()
+  if (user) redirect(returnTo)
   return (
     <main id="main-content" className="login-page week5-login">
       <section className="login-intro" aria-label="What you can make">
@@ -31,7 +32,7 @@ export default async function Login({ searchParams }: {
         {params.error && (
           <p className="status status-error" role="alert">We couldn&apos;t finish signing you in. Please try again.</p>
         )}
-        <LoginButton />
+        <LoginButton returnTo={returnTo} />
         <p className="login-note">One Google sign-in. No profile form required.</p>
       </section>
     </main>

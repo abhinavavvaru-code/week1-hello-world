@@ -1,22 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { rememberAuthReturn } from './actions'
 
-export default function LoginButton() {
+export default function LoginButton({ returnTo = '/explore' }: { returnTo?: string }) {
+  const pending = useRef(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   const signIn = async () => {
+    if (pending.current) return
+    pending.current = true
     setBusy(true)
     setError('')
     try {
+      await rememberAuthReturn(returnTo)
       const { error } = await createClient().auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       })
       if (error) throw error
     } catch {
+      pending.current = false
       setError('Google sign-in is unavailable right now. Please try again.')
       setBusy(false)
     }

@@ -14,15 +14,14 @@ export default async function Nav() {
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to content</a>
-      {user && (
-        <header className="nav">
-          <div className="shell nav-inner">
-            <Link href="/" className="wordmark" aria-label="Punchline home"><span className="brand-symbol" aria-hidden="true">p<span>.</span></span>Punchline</Link>
-            <NavLinks />
-            <span className="nav-kicker">A STUDY IN FUNNY</span>
-          </div>
-        </header>
-      )}
+      <header className="nav">
+        <div className="shell nav-inner">
+          <Link href="/" className="wordmark" aria-label="Punchline home"><span className="brand-symbol" aria-hidden="true">p<span>.</span></span>Punchline</Link>
+          <NavLinks signedIn={Boolean(user)} />
+          <span className="nav-kicker">A STUDY IN FUNNY</span>
+          {!user && <Link href="/login" className="nav-sign-in">Sign in <span aria-hidden="true">↗</span></Link>}
+        </div>
+      </header>
       <MemberMenu identity={identity} />
     </>
   )

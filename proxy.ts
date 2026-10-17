@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { safeAuthReturn } from '@/lib/auth-return'
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -24,17 +25,21 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
-  const isPublic = path === '/login' || path.startsWith('/auth/')
-  if (!user && path.startsWith('/api/')) {
+  const isPublishedImage = request.method === 'GET' && /^\/api\/captions\/[0-9a-f-]{36}\/image$/i.test(path)
+  const isPublic = path === '/' || path === '/explore' || path === '/login' || path.startsWith('/auth/') || isPublishedImage
+  if (!user && path.startsWith('/api/') && !isPublishedImage) {
     const denied = NextResponse.json({ error: 'Sign in to continue.' }, { status: 401 })
     response.cookies.getAll().forEach((cookie) => denied.cookies.set(cookie))
     denied.headers.set('Cache-Control', 'private, no-store')
     return denied
   }
-  const target = !user && !isPublic ? '/login' : user && path === '/login' ? '/' : null
+  const safeNext = safeAuthReturn(request.nextUrl.searchParams.get('next'))
+  const target = !user && !isPublic ? '/login' : user && path === '/login' ? safeNext : null
 
   if (target) {
-    const redirect = NextResponse.redirect(new URL(target, request.url))
+    const destination = new URL(target, request.url)
+    if (!user) destination.searchParams.set('next', path + request.nextUrl.search)
+    const redirect = NextResponse.redirect(destination)
     response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
     redirect.headers.set('Cache-Control', 'private, no-store')
     return redirect

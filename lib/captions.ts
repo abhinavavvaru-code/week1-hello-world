@@ -9,6 +9,7 @@ export type Caption = {
   myVote: number
   votedAt: string | null
   authorId: string
+  authorKey?: string
   authorName: string
   imageSrc: string
   imageAlt: string
@@ -33,4 +34,15 @@ export function captionVisual(caption: Pick<Caption, 'imageId' | 'imageSrc' | 'i
   const visual = captionImages.find((item) => item.id === caption.imageId)
   return visual ? { src: `/captions/${visual.id}.svg`, alt: visual.alt, category: visual.category }
     : { src: '', alt: 'Caption illustration unavailable', category: 'AI caption' }
+}
+
+export function captionFlavor(style: string): string {
+  const labels: Record<string, string> = {
+    dry: 'Dry / deadpan', deadpan: 'Dry / deadpan', chaotic: 'Chaotic / absurd',
+    wholesome: 'Wholesome', wordplay: 'Puns / wordplay', pun: 'Puns / wordplay',
+    roast: 'Playful roast', observational: 'Observational', sarcastic: 'Sarcastic',
+    surreal: 'Surreal', absurdist: 'Absurdist', dark: 'Dark humor', satire: 'Satire',
+  }
+  const value = style.trim().toLowerCase()
+  return labels[value] || value.replace(/[_-]+/g, ' ').replace(/^./, (letter) => letter.toUpperCase()) || 'Classic'
 }

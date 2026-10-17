@@ -1,17 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
+import { AUTH_RETURN_COOKIE, AUTH_RETURN_COOKIE_PATH, authReturnFromCookie } from '@/lib/auth-return'
 import { getIdentity, type ProfileFields } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import type { SupabaseClient, User } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
+  const returnTo = authReturnFromCookie((await cookies()).get(AUTH_RETURN_COOKIE)?.value)
+  const login = new URL('/login', origin)
+  login.searchParams.set('error', 'auth')
+  login.searchParams.set('next', returnTo)
+  const loginPath = `${login.pathname}${login.search}`
   const code = searchParams.get('code')
-  if (!code || searchParams.has('error')) return authRedirect(origin, '/login?error=auth')
+  if (!code || searchParams.has('error')) return authRedirect(origin, loginPath)
 
   try {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error || !data.user) return authRedirect(origin, '/login?error=auth')
+    if (error || !data.user) return authRedirect(origin, loginPath)
 
     // Profile details enhance the UI; a profile write must never prevent sign-in.
     try {
@@ -19,14 +26,18 @@ export async function GET(request: Request) {
     } catch {
       console.warn('Signed in successfully, but profile details could not be synchronized.')
     }
-    return authRedirect(origin, '/')
+    return authRedirect(origin, returnTo)
   } catch {
-    return authRedirect(origin, '/login?error=auth')
+    return authRedirect(origin, loginPath)
   }
 }
 
 function authRedirect(origin: string, path: string) {
   const response = NextResponse.redirect(new URL(path, origin))
+  response.cookies.set(AUTH_RETURN_COOKIE, '', {
+    path: AUTH_RETURN_COOKIE_PATH, httpOnly: true, sameSite: 'lax',
+    secure: new URL(origin).protocol === 'https:', maxAge: 0,
+  })
   response.headers.set('Cache-Control', 'private, no-store')
   return response
 }

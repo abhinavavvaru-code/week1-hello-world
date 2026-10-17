@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     return reply({ error: 'Use a short photo title and description.' }, 400)
   }
   const title = titleValue.trim()
-  const alt = altValue.trim()
+  const alt = altValue.trim() || 'A member-uploaded photo'
   if (!title || title.length > 80 || !alt || alt.length > 250 || /[\u0000-\u001f]/.test(title + alt)) {
     return reply({ error: 'Use a short photo title and description.' }, 400)
   }

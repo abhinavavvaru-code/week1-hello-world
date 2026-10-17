@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import { useGeneration } from './GenerationProvider'
 import { CAPTION_STYLES, CAPTION_TOPICS, CAPTION_PERSPECTIVES, topicLabels, perspectiveLabels, type CaptionStyle, type CaptionTopic, type CaptionPerspective } from '@/lib/generation-options'
 
 const images = [
@@ -79,6 +80,9 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
   dailyBrief: string
   initialTopic?: CaptionTopic
 }) {
+  const generation = useGeneration()
+  const promptRef = useRef<HTMLTextAreaElement>(null)
+  const [sceneApplied,setSceneApplied] = useState(false)
   const [imageId, setImageId] = useState<string>('dark-mode')
   const [style, setStyle] = useState<CaptionStyle>('dry')
   const [topic, setTopic] = useState<CaptionTopic>(initialTopic)
@@ -102,12 +106,17 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
   const router = useRouter()
   const formId = useId()
   const selected = images.find((image) => image.id === imageId) ?? images[1]
-  const exhausted = remaining === 0
+  const available = generation.remaining ?? remaining
+  const exhausted = available === 0
   const photoSelected = imageId.startsWith('upload-')
-  const locked = busy || preparing || uploading
+  const locked = busy || generation.busy || preparing || uploading
   const selectedAlt = photoSelected && photo ? photo.alt || 'Your uploaded photo' : selected.alt
   const selectedSrc = photoSelected && photo ? photo.src : `/captions/${selected.id}.svg`
   const selectedTitle = photoSelected && photo ? photo.title || 'Your photo' : selected.label
+
+  useEffect(() => {
+    if (generation.job?.status === 'failed') requestId.current = null
+  }, [generation.job?.status])
 
   useEffect(() => {
     mounted.current = true
@@ -216,14 +225,8 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
     requestId.current ??= crypto.randomUUID()
     let navigating = false
     try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId: requestId.current, imageId, style, topic, perspective, prompt: scene }),
-      })
-      const body: unknown = await response.json().catch(() => null)
-      const result = typeof body === 'object' && body !== null && !Array.isArray(body)
-        ? body as GenerationResponse : null
+      const response = await generation.start({requestId:requestId.current,imageId,style,topic,perspective,prompt:scene})
+      const result: GenerationResponse = response.data
       if (!result) {
         setError('We could not confirm your captions. Please try again to pick up where you left off.')
         return
@@ -261,7 +264,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
       }
       requestId.current = null
       navigating = true
-      router.push(`/?generation=${encodeURIComponent(result.generationId)}`)
+      if (mounted.current) router.push(`/explore?generation=${encodeURIComponent(result.generationId)}`)
     } catch {
       setError('The connection dropped. Your scene is still here. Try again to check for your captions.')
     } finally {
@@ -288,10 +291,10 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
         <div className="lab-daily">
           <p className="eyebrow"><span className="live-dot" /> TODAY’S BRIEF</p>
           <p className="lab-brief">{dailyBrief}</p>
-          <button type="button" className="text-link" disabled={locked} onClick={() => { setPrompt(dailyBrief); edit() }}>
-            Try this scene <span aria-hidden="true">↗</span>
+          <button type="button" className="text-link" disabled={locked} onClick={() => { setPrompt(dailyBrief); edit(); setSceneApplied(true); promptRef.current?.focus(); promptRef.current?.scrollIntoView({behavior:'smooth',block:'center'}) }}>
+            {sceneApplied ? 'Scene added ✓' : 'Use this scene in my prompt'}
           </button>
-          <p className="lab-daily-note">A fresh idea every day, inspired by campus life and NYC weekends.</p>
+          <p className="lab-daily-note">Fills the scene box below. Then choose Generate to make captions.</p>
         </div>
       </aside>
 
@@ -299,7 +302,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
         <fieldset className="lab-fieldset" disabled={locked}>
           <legend><span className="lab-step">01</span> Pick your picture</legend>
           <div className="lab-upload-box">
-            <label className="lab-upload-label" htmlFor={`${formId}-photo`}><span aria-hidden="true">↥</span> Add your own photo</label>
+            <label className="lab-upload-label" htmlFor={`${formId}-photo`}><span aria-hidden="true">↥</span> Upload an image</label>
             <input id={`${formId}-photo`} className="lab-file-input" type="file" accept="image/jpeg,image/png,image/webp"
               aria-describedby={`${formId}-photo-hint`} onChange={(event) => {
                 const file = event.currentTarget.files?.[0]
@@ -312,12 +315,12 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
               <div className="lab-photo-details">
                 <label htmlFor={`${formId}-photo-title`}>Photo title</label>
                 <input id={`${formId}-photo-title`} value={photo.title} maxLength={80} disabled={Boolean(photo.id)} onChange={(event) => { setPhoto({ ...photo, title: event.target.value }); edit() }} />
-                <label htmlFor={`${formId}-photo-alt`}>Describe what is visible <span>(optional)</span></label>
+                <label htmlFor={`${formId}-photo-alt`}>Image description <span>(optional, not your joke prompt)</span></label>
                 <input id={`${formId}-photo-alt`} value={photo.alt} maxLength={250} disabled={Boolean(photo.id)} placeholder="A coffee cup beside a pile of books" onChange={(event) => { setPhoto({ ...photo, alt: event.target.value }); edit() }} />
                 <label className="lab-photo-consent"><input type="checkbox" checked={photoConsent} onChange={(event) => { setPhotoConsent(event.target.checked); edit() }} />
-                  <span>I’m okay with DeepSeek reading this photo’s visible content for captions, and sharing the photo with signed-in members when I post.</span>
+                  <span>I’m okay with DeepSeek reading this photo’s visible content for captions, and publishing the photo and captions in Explore when I post.</span>
                 </label>
-                <p className="lab-photo-note">Use a photo you have permission to share. Your written prompt stays private.</p>
+                <p className="lab-photo-note">Use an image you have permission to publish. Your written prompt stays private.</p>
                 {!photo.id ? <button type="button" className="btn btn-sm" disabled={locked || !photoConsent} onClick={uploadPhoto}>{uploading ? 'Uploading your photo…' : 'Upload and use photo'}</button>
                   : <p className="lab-upload-status" role="status">Photo ready. Choose your style and set the scene below.</p>}
               </div>
@@ -378,8 +381,8 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
 
         <div className="lab-scene">
           <label htmlFor={`${formId}-prompt`}><span className="lab-step">04</span> Set the scene</label>
-          <p id={`${formId}-hint`}>Give the AI a situation or an inside joke. Each caption stays punchy: 8–10 words.</p>
-          <textarea id={`${formId}-prompt`} name="prompt" value={prompt} minLength={5} maxLength={500} required disabled={locked}
+          <p id={`${formId}-hint`}>Give the AI a situation or an inside joke. Three distinct punchlines, each 10 words or fewer.</p>
+          <textarea ref={promptRef} id={`${formId}-prompt`} name="prompt" value={prompt} minLength={5} maxLength={500} required disabled={locked}
             aria-describedby={`${formId}-hint ${formId}-count`} rows={4}
             onChange={(event) => { setPrompt(event.target.value); edit() }} />
           <p id={`${formId}-count`} className="lab-character-count">{prompt.length} / 500</p>
@@ -387,12 +390,12 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
 
         <div className="lab-submit-area">
           <button type="submit" className="btn btn-primary lab-submit" disabled={locked || exhausted || (photoSelected && (!photo?.id || !photoConsent))}>
-            {busy ? <><span className="lab-spinner" aria-hidden="true" /> Finding the punchline…</> : <><SparkIcon /> Generate 3 captions <span aria-hidden="true">↗</span></>}
+            {busy || generation.busy ? <><span className="lab-spinner" aria-hidden="true" /> Finding the punchline…</> : <><SparkIcon /> Generate 3 captions <span aria-hidden="true">↗</span></>}
           </button>
-          <p className="lab-allowance">{remaining === null ? 'Up to 5 generations a day.' : `${remaining} of 5 generations left today.`} Three captions each, 8–10 words apiece.</p>
-          <p className="lab-privacy">Your prompt and context stay private. Your picture and AI captions are shared with signed-in members when you generate.</p>
-          <div aria-live="polite" role="status" className="lab-progress">{busy ? 'Making and saving your captions. Keep this page open for a moment.' : ''}</div>
-          {error && <p className="status status-error" role="alert">{error}{needsLogin && <> <Link href="/login">Sign in</Link></>}</p>}
+          <p className="lab-allowance">{available === null ? 'Up to 5 successful generations a day.' : `${available} of 5 generations left today.`} Failed rounds are returned.</p>
+          <p className="lab-privacy">Your prompt and context stay private. Your image and captions are published in Explore when you generate.</p>
+          <div aria-live="polite" role="status" className="lab-progress">{busy || generation.busy ? 'Generating and saving your captions. You can browse Explore while you wait.' : ''}</div>
+          {error && generation.job?.status!=='succeeded' && <p className="status status-error" role="alert">{error}{needsLogin && <> <Link href="/login">Sign in</Link></>}</p>}
         </div>
       </form>
     </div>
