@@ -29,6 +29,7 @@ def upload(attempt):
     result = query(f"""begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','{user_id}',true);
+select set_config('request.jwt.claim.role','authenticated',true);
 insert into storage.objects(bucket_id,name) values ('caption-uploads','{user_id}/{image_id}.jpg');
 commit;
 """)

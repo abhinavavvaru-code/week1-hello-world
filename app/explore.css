@@ -92,3 +92,53 @@
 @media(max-width:360px) { .explore-gallery .caption-author>span { width:100%; margin-left:0; } .explore-gallery .caption-score { font-size:10px; } }
 
 .explore-gallery .caption-text[id] { scroll-margin-top:110px; }
+
+/* Week 7: compact cards, reversible ratings and an accessible focused reader. */
+.explore-page { padding-top:25px; }
+.explore-page .page-heading { margin-bottom:20px; }
+.gallery-help { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 13px; margin:0 0 16px; border:1px solid var(--line); border-radius:9px; background:var(--surface-soft); }
+.gallery-help p { margin:0; font-size:12px; line-height:1.5; color:var(--ink); }
+.gallery-help button { display:flex; align-items:center; gap:8px; border:0; background:transparent; color:var(--ink); cursor:pointer; padding:5px; font:inherit; font-size:11px; white-space:nowrap; }
+.gallery-help button span { font-size:21px; line-height:1; }
+.collection-show select { border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); min-height:40px; max-width:230px; padding:8px 11px; font:inherit; font-size:12px; }
+.gallery-view-options { display:flex; gap:3px; margin-left:auto; border:1px solid var(--line); border-radius:9px; padding:3px; }
+.gallery-view-options button { border:0; border-radius:6px; padding:7px 10px; color:var(--muted); background:transparent; font:inherit; font-size:11px; cursor:pointer; white-space:nowrap; }
+.gallery-view-options button[aria-pressed=true] { background:var(--yellow); color:var(--yellow-ink); }
+.gallery-primary-filters { margin-top:13px; gap:10px; }
+.explore-gallery .caption-image { aspect-ratio:1.8; max-height:280px; }
+.explore-gallery .caption-body { padding:16px 18px 13px; }
+.explore-gallery .caption-text { font-size:20px; margin-bottom:11px; }
+.explore-gallery .caption-actions { border-top:1px solid var(--line); padding-top:10px; }
+.explore-gallery .caption-body { display:flex; flex-direction:column; }
+.explore-gallery .caption-actions { order:-1; border-top:0; border-bottom:1px solid var(--line); padding-top:0; padding-bottom:10px; margin-bottom:12px; }
+.explore-gallery .vote-group { margin-left:auto; order:2; }
+.explore-gallery .caption-score { margin-left:0; margin-right:auto; order:1; }
+.explore-gallery .caption-tools { order:3; }
+.explore-gallery .vote-button { min-width:60px; border-color:var(--muted); color:var(--ink); }
+.explore-gallery .vote-button[aria-pressed=true] { cursor:pointer; }
+.vote-control { position:relative; display:inline-flex; }
+.vote-signin-hint { position:absolute; right:0; bottom:calc(100% + 8px); width:max-content; max-width:170px; padding:8px 10px; border-radius:7px; border:1px solid var(--line); color:var(--ink); background:var(--bg); font-size:11px; box-shadow:0 4px 18px #0002; opacity:0; visibility:hidden; transform:translateY(3px); pointer-events:none; transition:opacity .12s,transform .12s; z-index:20; }
+.vote-control:hover .vote-signin-hint,.vote-control:focus-within .vote-signin-hint { opacity:1; visibility:visible; transform:translateY(0); }
+.gallery-focus .caption-grid { grid-template-columns:minmax(0,640px); justify-content:center; }
+.gallery-focus .caption-card:focus-visible { outline:2px solid var(--accent); outline-offset:5px; }
+.gallery-focus .caption-image { aspect-ratio:2; max-height:32vh; }
+.gallery-focus .caption-text { font-size:clamp(19px,2vw,25px); }
+.focus-pagination { display:flex; align-items:center; justify-content:center; gap:24px; margin:16px 0; }
+.focus-pagination>span { text-align:center; font-size:12px; }
+.focus-pagination small { display:block; margin-top:6px; color:var(--muted); font-size:10px; }
+.focus-pagination .btn { padding:10px 14px; font-size:12px; }
+.lab-fieldset legend small,.lab-scene label small { margin-left:7px; font-size:11px; color:var(--muted); font-weight:400; }
+.lab-photo-credit { font-size:10px!important; margin-top:10px; color:var(--muted); }
+.lab-photo-credit a { text-decoration:underline; text-underline-offset:3px; }
+.lab-image-choice img { object-fit:cover; }
+@media(max-width:650px) {
+ .collection-toolbar { flex-wrap:wrap; }
+ .collection-show { flex:1; }
+ .collection-show select { max-width:100%; width:100%; }
+ .gallery-view-options { flex:1 0 100%; justify-content:center; }
+ .explore-gallery .caption-image { aspect-ratio:1.75; max-height:240px; }
+ .explore-gallery .caption-text { font-size:20px; }
+ .gallery-help { align-items:flex-start; }
+ .focus-pagination { gap:12px; }
+ .focus-pagination small { max-width:140px; line-height:1.5; }
+}

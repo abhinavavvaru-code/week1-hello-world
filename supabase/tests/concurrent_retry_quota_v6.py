@@ -28,6 +28,7 @@ def retry(attempt):
     result=query(f"""begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','{user_id}',true);
+select set_config('request.jwt.claim.role','authenticated',true);
 select public.fail_caption_generation(id) from public.reserve_caption_generation_v5(
  '6b000000-0000-4000-8000-{attempt:012d}','earth','Retry context','dry','System','deepseek-flash');
 commit;""")

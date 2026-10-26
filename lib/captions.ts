@@ -1,3 +1,5 @@
+import { presetPhotos } from './preset-photos'
+
 export type Caption = {
   id: string
   content: string
@@ -31,6 +33,8 @@ export const captionImages = [
 // The persisted image ID links every generated caption to its chosen illustration.
 export function captionVisual(caption: Pick<Caption, 'imageId' | 'imageSrc' | 'imageAlt'>) {
   if (caption.imageSrc) return {src:caption.imageSrc, alt:caption.imageAlt || 'A member-uploaded photo', category:'Your photo'}
+  const photo = presetPhotos.find((item) => item.id === caption.imageId)
+  if (photo) return { src: photo.src, alt: photo.alt, category: photo.label }
   const visual = captionImages.find((item) => item.id === caption.imageId)
   return visual ? { src: `/captions/${visual.id}.svg`, alt: visual.alt, category: visual.category }
     : { src: '', alt: 'Caption illustration unavailable', category: 'AI caption' }

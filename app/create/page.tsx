@@ -27,6 +27,8 @@ export default async function CreatePage({ searchParams }: {
 }) {
   const { supabase } = await requireUser()
   const { data: allowance } = await supabase.rpc('get_generation_allowance')
+  const { data: activeImages } = await supabase.from('caption_images').select('id')
+    .eq('is_active', true).is('archived_at', null).is('owner_id', null)
   const { topic } = await searchParams
   const initialTopic = typeof topic === 'string' && CAPTION_TOPICS.includes(topic as CaptionTopic) ? topic as CaptionTopic : 'campus'
   const today = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(new Date())
@@ -41,7 +43,7 @@ export default async function CreatePage({ searchParams }: {
         </div>
         <Link className="text-link" href="/">Explore captions <span aria-hidden="true">↗</span></Link>
       </section>
-      <CaptionLab key={initialTopic} dailyBrief={briefs[Math.max(0, day)]} initialTopic={initialTopic} initialRemaining={typeof allowance === 'number' ? allowance : null} />
+      <CaptionLab key={initialTopic} dailyBrief={briefs[Math.max(0, day)]} initialTopic={initialTopic} availableImageIds={(activeImages ?? []).map((image) => image.id)} initialRemaining={typeof allowance === 'number' ? allowance : null} />
       <footer className="page-footer">A little campus life. A little internet brain.<span>Made for the Humor Project.</span></footer>
     </main>
   )

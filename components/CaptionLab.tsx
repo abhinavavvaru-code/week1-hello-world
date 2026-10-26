@@ -5,8 +5,9 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGeneration } from './GenerationProvider'
 import { CAPTION_STYLES, CAPTION_TOPICS, CAPTION_PERSPECTIVES, topicLabels, perspectiveLabels, type CaptionStyle, type CaptionTopic, type CaptionPerspective } from '@/lib/generation-options'
+import { presetPhotos } from '@/lib/preset-photos'
 
-const images = [
+const illustrations = [
   { id: 'udp', label: 'Left on read', alt: 'A paper airplane carrying a message into the unknown', prompt: 'A message vanishes into the void of the dorm group chat.' },
   { id: 'dark-mode', label: 'One more tab', alt: 'A laptop glowing in the dark, attracting a few curious bugs', prompt: 'It is late at night in the dorms, and the laptop is still glowing.' },
   { id: 'gravity', label: 'Light reading', alt: 'An open book floating above a desk', prompt: 'An open book floats above a desk during a long library study session.' },
@@ -14,6 +15,7 @@ const images = [
   { id: 'binary', label: 'Roommate logic', alt: 'Two friendly robots, one and zero', prompt: 'Two robot roommates, one and zero, have very different ideas about the weekend.' },
   { id: 'earth', label: 'Outside era', alt: 'A happy planet Earth enjoying the sunshine', prompt: 'A happy planet enjoys the sunshine while a student finally goes outside in New York.' },
 ] as const
+const images = [...presetPhotos, ...illustrations.map((image) => ({ ...image, src: `/captions/${image.id}.svg` }))]
 
 const styleDescriptions: Record<CaptionStyle, { label: string; description: string }> = {
   dry: { label: 'Dry', description: 'Understated. Unbothered.' },
@@ -75,15 +77,17 @@ type GenerationResponse = {
   code?: string
 }
 
-export default function CaptionLab({ initialRemaining = null, dailyBrief, initialTopic = 'campus' }: {
+export default function CaptionLab({ initialRemaining = null, dailyBrief, initialTopic = 'campus', availableImageIds = images.map((image) => image.id) }: {
   initialRemaining?: number | null
   dailyBrief: string
   initialTopic?: CaptionTopic
+  availableImageIds?: string[]
 }) {
+  const availableImages = images.filter((image) => availableImageIds.includes(image.id))
   const generation = useGeneration()
   const promptRef = useRef<HTMLTextAreaElement>(null)
   const [sceneApplied,setSceneApplied] = useState(false)
-  const [imageId, setImageId] = useState<string>('dark-mode')
+  const [imageId, setImageId] = useState<string>(availableImages[0]?.id || '')
   const [style, setStyle] = useState<CaptionStyle>('dry')
   const [topic, setTopic] = useState<CaptionTopic>(initialTopic)
   const [perspective, setPerspective] = useState<CaptionPerspective>('observer')
@@ -92,7 +96,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
   const [preparing, setPreparing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
-  const [prompt, setPrompt] = useState<string>(images[1].prompt)
+  const [prompt, setPrompt] = useState<string>('')
   const [remaining, setRemaining] = useState(initialRemaining)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -105,13 +109,13 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
   const mounted = useRef(true)
   const router = useRouter()
   const formId = useId()
-  const selected = images.find((image) => image.id === imageId) ?? images[1]
+  const selected = images.find((image) => image.id === imageId) ?? availableImages[0] ?? images[0]
   const available = generation.remaining ?? remaining
   const exhausted = available === 0
   const photoSelected = imageId.startsWith('upload-')
   const locked = busy || generation.busy || preparing || uploading
   const selectedAlt = photoSelected && photo ? photo.alt || 'Your uploaded photo' : selected.alt
-  const selectedSrc = photoSelected && photo ? photo.src : `/captions/${selected.id}.svg`
+  const selectedSrc = photoSelected && photo ? photo.src : selected.src
   const selectedTitle = photoSelected && photo ? photo.title || 'Your photo' : selected.label
 
   useEffect(() => {
@@ -209,11 +213,15 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (inFlight.current || exhausted || preparing || uploading) return
+    if (!photoSelected && !availableImageIds.includes(imageId)) {
+      setError('Choose an available picture or upload your own photo.')
+      return
+    }
     if (photoSelected && (!photo?.id || !photoConsent)) {
       setError('Upload your photo and confirm the photo settings before generating.')
       return
     }
-    const scene = prompt.trim()
+    const scene = prompt.trim() || (photoSelected ? 'Write three short captions grounded in the visible photo.' : selected.prompt)
     if (scene.length < 5 || scene.length > 500) {
       setError('Give the AI a little context: between 5 and 500 characters.')
       return
@@ -287,6 +295,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
           <p className="eyebrow">PICTURE THIS</p>
           <h2>{selectedTitle}</h2>
           <p>Your picture. Three short AI punchlines. The members decide what lands.</p>
+          {!photoSelected && 'photographer' in selected && <p className="lab-photo-credit">Photo by <a href={selected.source} target="_blank" rel="noreferrer">{selected.photographer} / Pexels</a></p>}
         </div>
         <div className="lab-daily">
           <p className="eyebrow"><span className="live-dot" /> TODAY’S BRIEF</p>
@@ -327,7 +336,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
             )}
             {photoError && <p className="status status-error" role="alert">{photoError}{needsLogin && <> <Link href="/login">Sign in</Link></>}</p>}
           </div>
-          <p className="lab-preset-label">{photo ? 'Choose your photo or an illustration' : 'Or start with an illustration'}</p>
+          <p className="lab-preset-label">Or start with a real photo or illustration</p>
           <div className="lab-image-options">
             {photo && <label className="lab-image-option">
               <input type="radio" name="image" value={photo.id || 'upload-pending'} checked={photoSelected} onChange={() => { if (prompt === selected.prompt) setPrompt(''); setImageId(photo.id || 'upload-pending'); edit() }} />
@@ -337,12 +346,12 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
                 <span>Your photo</span><span className="lab-selection" aria-hidden="true">✓</span>
               </span>
             </label>}
-            {images.map((image) => (
+            {availableImages.map((image) => (
               <label key={image.id} className="lab-image-option">
                 <input type="radio" name="image" value={image.id} checked={imageId === image.id} onChange={() => selectImage(image.id)} />
                 <span className="lab-image-choice">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/captions/${image.id}.svg`} width="180" height="120" alt="" />
+                  <img src={image.src} width="180" height="120" alt="" />
                   <span>{image.label}</span>
                   <span className="lab-selection" aria-hidden="true">✓</span>
                 </span>
@@ -352,7 +361,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
         </fieldset>
 
         <fieldset className="lab-fieldset" disabled={locked}>
-          <legend><span className="lab-step">02</span> Choose the energy</legend>
+          <legend><span className="lab-step">02</span> Choose the energy <small>optional</small></legend>
           <div className="lab-style-options">
             {CAPTION_STYLES.map((id) => ({ id, ...styleDescriptions[id] })).map((item) => (
               <label key={item.id} className="lab-style-option">
@@ -364,7 +373,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
         </fieldset>
 
         <fieldset className="lab-fieldset lab-angle-fields" disabled={locked}>
-          <legend><span className="lab-step">03</span> Find your angle</legend>
+          <legend><span className="lab-step">03</span> Find your angle <small>optional</small></legend>
           <div className="lab-angle-options">
             <label htmlFor={`${formId}-topic`}>Topic
               <select id={`${formId}-topic`} value={topic} onChange={(event) => { setTopic(event.target.value as CaptionTopic); edit() }}>
@@ -380,9 +389,9 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
         </fieldset>
 
         <div className="lab-scene">
-          <label htmlFor={`${formId}-prompt`}><span className="lab-step">04</span> Set the scene</label>
-          <p id={`${formId}-hint`}>Give the AI a situation or an inside joke. Three distinct punchlines, each 10 words or fewer.</p>
-          <textarea ref={promptRef} id={`${formId}-prompt`} name="prompt" value={prompt} minLength={5} maxLength={500} required disabled={locked}
+          <label htmlFor={`${formId}-prompt`}><span className="lab-step">04</span> Set the scene <small>optional</small></label>
+          <p id={`${formId}-hint`}>Add an inside joke, or leave this blank and we’ll use the picture. Captions stay under 10 words.</p>
+          <textarea ref={promptRef} id={`${formId}-prompt`} name="prompt" value={prompt} placeholder={photoSelected ? 'Optional: add a situation or an inside joke…' : selected.prompt} minLength={5} maxLength={500} disabled={locked}
             aria-describedby={`${formId}-hint ${formId}-count`} rows={4}
             onChange={(event) => { setPrompt(event.target.value); edit() }} />
           <p id={`${formId}-count`} className="lab-character-count">{prompt.length} / 500</p>

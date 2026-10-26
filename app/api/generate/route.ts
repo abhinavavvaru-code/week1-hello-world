@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer'
+import { resolveCaptionRuntime, attachCaptionRuntime, observeCaptionCalls, type CaptionRuntime } from '@/lib/caption-runtime'
 import { createClient } from '@/lib/supabase/server'
 import { CAPTION_PERSPECTIVES, CAPTION_STYLES, CAPTION_TOPICS } from '@/lib/generation-options'
 import {
@@ -138,6 +139,9 @@ async function withAllowance(response: Response, supabase: Awaited<ReturnType<ty
 function providerFailure(error: unknown) {
   const code = error instanceof CaptionGenerationError ? error.code : 'provider_unavailable'
   console.warn('[caption-generation]', code)
+  if (code === 'telemetry_unavailable') {
+    return failure('We couldn’t record this generation safely. Please try again later.', 'setup_required', 503)
+  }
   if (code === 'provider_auth') {
     return failure('The AI service could not authenticate. The site owner needs to reconnect it.', 'provider_auth', 503)
   }
@@ -213,6 +217,28 @@ export async function GET(request: Request) {
   return withAllowance(failure('We couldn’t check your captions. Please try again.', 'status_unavailable', 503), supabase)
 }
 
+async function existingRequest(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, input: GenerateCaptionInput): Promise<Response | null> {
+  try {
+    const { data: generation, error } = await supabase.from('caption_generations')
+      .select('id,status,image_id,style,prompt,topic,perspective').eq('request_id', input.requestId).eq('user_id', userId).maybeSingle()
+    if (error) return databaseFailure(error)
+    if (!generation) return null
+    if (generation.image_id !== input.imageId || generation.style !== input.style || generation.prompt !== input.prompt
+      || generation.topic !== input.topic || generation.perspective !== input.perspective) {
+      return failure('This request has already been used. Start a fresh generation.', 'request_conflict', 409)
+    }
+    if (generation.status === 'succeeded') {
+      const { data, error: captionError } = await supabase.from('captions').select('id').eq('generation_id', generation.id).order('position')
+      const ids = captionIds(data)
+      if (captionError || !ids) return failure('We couldn’t load those captions. Check the saved result.', 'save_failed', 503)
+      return reply({ generationId: generation.id, captionIds: ids })
+    }
+    if (generation.status === 'failed') return failure('That generation didn’t finish. Start a fresh generation to try again.', 'generation_failed', 409)
+    if (generation.status === 'pending') return reply({ error: 'Your captions are still being generated. Check the saved result in a moment.', code: 'generation_pending', generationId: generation.id }, 409)
+  } catch {}
+  return failure('We couldn’t check your saved captions. Please try again.', 'save_failed', 503)
+}
+
 export async function POST(request: Request) {
   const requestDeadlineAt = Date.now() + 50_000
   if (request.headers.get('origin') !== new URL(request.url).origin) {
@@ -239,8 +265,10 @@ export async function POST(request: Request) {
   const input = validateInput(body.data)
   if (!input) return failure('Choose a picture, tone, topic, and point of view, then add up to 500 characters of context.', 'invalid_request', 400)
 
+  const previous = await existingRequest(supabase, userId, input)
+  if (previous) return withAllowance(previous, supabase)
+
   const apiKey = process.env.DEEPSEEK_API_KEY?.trim()
-  const model = 'deepseek-flash'
   if (!apiKey) {
     console.warn('[caption-generation]', 'api_key_missing')
     return failure('The AI caption service is not configured yet. Please try again later.', 'api_key_missing', 503)
@@ -266,7 +294,23 @@ export async function POST(request: Request) {
     }
   }
 
-  const systemPrompt = captionSystemPrompt(input, uploadedImage)
+  let runtimeConfig: CaptionRuntime
+  let systemPrompt: string
+  try {
+    runtimeConfig = await resolveCaptionRuntime(supabase, input.style)
+    if (uploadedImage && !runtimeConfig.supportsVision) throw Error('runtime_unavailable')
+    let creativeContext = runtimeConfig.creativeContext
+    systemPrompt = captionSystemPrompt(input, uploadedImage, creativeContext)
+    for (const reference of runtimeConfig.references) {
+      const next = `${creativeContext}\n${reference}`
+      const candidate = captionSystemPrompt(input, uploadedImage, next)
+      if (candidate.length <= 8000) { creativeContext = next; systemPrompt = candidate }
+    }
+    if (systemPrompt.length > 8000) throw Error('runtime_unavailable')
+  } catch {
+    return failure('The caption instructions are unavailable. Please try again later.', 'setup_required', 503)
+  }
+  const model = runtimeConfig.model
   let reservationData: unknown
   try {
     const { data, error } = await supabase.rpc('reserve_caption_generation_v5', {
@@ -279,7 +323,13 @@ export async function POST(request: Request) {
       p_system_prompt: systemPrompt,
       p_model: model,
     })
-    if (error) return withAllowance(databaseFailure(error), supabase)
+    if (error) {
+      if (error.message === 'REQUEST_ID_REUSED_WITH_DIFFERENT_INPUT') {
+        const existing = await existingRequest(supabase, userId, input)
+        if (existing) return withAllowance(existing, supabase)
+      }
+      return withAllowance(databaseFailure(error), supabase)
+    }
     reservationData = data
   } catch {
     return withAllowance(databaseFailure({}), supabase)
@@ -313,6 +363,13 @@ export async function POST(request: Request) {
     return withAllowance(reply({ error: 'Your captions are still being generated. Wait a moment, then try again.', code: 'generation_pending', generationId }, 409), supabase)
   }
 
+  let generationRequestId: string
+  try { generationRequestId = await attachCaptionRuntime(supabase, generationId, runtimeConfig) }
+  catch {
+    await markFailed(supabase, generationId)
+    return withAllowance(failure('We couldn’t save the caption instructions. Please try again later.', 'setup_required', 503), supabase)
+  }
+  const observer = observeCaptionCalls(supabase, generationRequestId)
   let imageDataUrl: string | undefined
   if (uploadedImage) {
     try {
@@ -338,7 +395,7 @@ export async function POST(request: Request) {
   let captions: [string, string, string]
   try {
     if (imageDataUrl) {
-      const assessment = await assessImageSuitability(imageDataUrl, { apiKey, model, deadlineAt })
+      const assessment = await assessImageSuitability(imageDataUrl, { apiKey, model: runtimeConfig.assessmentModel, deadlineAt, observer })
       if (!assessment.image_suitable) {
         await markFailed(supabase, generationId)
         const message = assessment.reason === 'private_information'
@@ -350,7 +407,7 @@ export async function POST(request: Request) {
         return withAllowance(failure(message, 'image_not_suitable', 422), supabase)
       }
     }
-    captions = await generateCaptions(input, { apiKey, model, systemPrompt, imageDataUrl, deadlineAt })
+    captions = await generateCaptions(input, { apiKey, model, systemPrompt, imageDataUrl, deadlineAt, observer, chainSteps: runtimeConfig.steps })
   } catch (error) {
     await markFailed(supabase, generationId)
     return withAllowance(providerFailure(error), supabase)

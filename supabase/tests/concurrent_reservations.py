@@ -33,6 +33,7 @@ def reserve(attempt):
     sql = f"""begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','{user_id}',true);
+select set_config('request.jwt.claim.role','authenticated',true);
 select id from public.reserve_caption_generation(
   '{request_id}','udp','Concurrent quota test','dry','Generate three captions.','deepseek-flash');
 commit;
