@@ -20,8 +20,8 @@ export default async function Login({ searchParams }: {
         <p>Turn the little moments into something worth sharing.</p>
         <div className="login-demo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/captions/interest.svg" width="720" height="480" alt="An illustrated piggy bank with a falling budget chart" />
-          <p>My budget and I are seeing other people.</p><small>Example AI caption · 9 words</small>
+          <img src="/photos/photo-coffee.jpg" width="500" height="750" alt="A metal coffee cup and saucer beside an open laptop and a stack of reading material on a sunlit desk." />
+          <p>Caffeine is doing the reading. I&apos;m just supervising.</p><small>Example AI caption · 9 words</small>
         </div>
         <div className="login-steps"><span>01 Upload a photo</span><span>02 Find the punchline</span><span>03 Let people vote</span></div>
       </section>

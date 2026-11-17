@@ -1,6 +1,6 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Caption } from './captions'
+import { isRealPhotoCaption, type Caption } from './captions'
 
 type FeedRow = {
   id: string; content: string; image_id: string; style: string; created_at: string
@@ -20,7 +20,7 @@ export async function loadCaptions(supabase: SupabaseClient) {
     imageSrc: row.storage_path ? `/api/captions/${row.id}/image` : row.image_src,
     imageAlt: row.image_alt, topic: row.topic || 'campus', perspective: row.perspective || 'observer',
     weekUpvotes: Number(row.week_upvotes), monthUpvotes: Number(row.month_upvotes),
-  }))
+  })).filter(isRealPhotoCaption)
   return { captions, error }
 }
 

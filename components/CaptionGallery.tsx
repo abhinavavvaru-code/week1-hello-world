@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { captionFlavor, captionVisual, type Caption } from '@/lib/captions'
+import { presetPhotos } from '@/lib/preset-photos'
 import { CAPTION_STYLES, CAPTION_TOPICS, topicLabels, type CaptionTopic } from '@/lib/generation-options'
 import { filterCaptions, type GalleryFilter } from '@/lib/gallery-filter'
 import { downloadMeme, downloadText } from '@/lib/caption-export'
@@ -253,7 +254,7 @@ export default function CaptionGallery({ initialCaptions, mode = 'browse', newCa
           return <article key={caption.id} className="caption-card" aria-labelledby={`caption-${caption.id}`} tabIndex={view === 'focus' ? 0 : undefined}>
             <div className="caption-image">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={visual.src || '/captions/earth.svg'} alt={visual.alt} width="720" height="480" loading={index < 3 ? 'eager' : 'lazy'} />
+              <img src={visual.src || presetPhotos[0].src} alt={visual.src ? visual.alt : presetPhotos[0].alt} width="720" height="480" loading={index < 3 ? 'eager' : 'lazy'} />
               {selecting && <label className="caption-select"><input type="checkbox" checked={selectedIds.includes(caption.id)} aria-label={`Select caption: ${caption.content}`}
                 onChange={(event) => setSelectedIds((all) => event.target.checked ? [...new Set([...all, caption.id])] : all.filter((id) => id !== caption.id))} /><span>Select</span></label>}
             </div>

@@ -9,8 +9,8 @@ import {
 
 export { CAPTION_STYLES }
 
-export const CAPTION_IMAGE_IDS = ['udp', 'dark-mode', 'gravity', 'interest', 'binary', 'earth', ...presetPhotos.map(photo => photo.id)] as const
-type PresetImageId = typeof CAPTION_IMAGE_IDS[number]
+export const CAPTION_IMAGE_IDS = presetPhotos.map(photo => photo.id)
+type PresetImageId = typeof presetPhotos[number]['id']
 
 export type GenerateCaptionInput = {
   requestId: string

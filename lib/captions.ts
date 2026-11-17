@@ -21,23 +21,21 @@ export type Caption = {
   monthUpvotes: number
 }
 
-export const captionImages = [
-  { id: 'udp', alt: 'A paper airplane carrying a message into the unknown', category: 'Group chat energy' },
-  { id: 'dark-mode', alt: 'A laptop glowing in the dark, attracting a few curious bugs', category: 'After hours' },
-  { id: 'gravity', alt: 'An open book floating above a desk', category: 'Library spiral' },
-  { id: 'interest', alt: 'A piggy bank beside a falling interest chart', category: 'Student budget' },
-  { id: 'binary', alt: 'Two friendly robots, one and zero', category: 'Roommate logic' },
-  { id: 'earth', alt: 'A happy planet Earth enjoying the sunshine', category: 'Weekend orbit' },
-] as const
+// Early weeks used AI-style illustrations. They are no longer offered or shown:
+// only real photos (bundled presets and member uploads) appear on the site.
+export const LEGACY_ILLUSTRATION_IDS: readonly string[] = ['udp', 'dark-mode', 'gravity', 'interest', 'binary', 'earth']
 
-// The persisted image ID links every generated caption to its chosen illustration.
+export function isRealPhotoCaption(caption: Pick<Caption, 'imageId' | 'imageSrc'>) {
+  if (caption.imageSrc) return !/\.svg(?:$|[?#])/i.test(caption.imageSrc)
+  return presetPhotos.some((item) => item.id === caption.imageId)
+}
+
+// The persisted image ID links every generated caption to its chosen photo.
 export function captionVisual(caption: Pick<Caption, 'imageId' | 'imageSrc' | 'imageAlt'>) {
   if (caption.imageSrc) return {src:caption.imageSrc, alt:caption.imageAlt || 'A member-uploaded photo', category:'Your photo'}
   const photo = presetPhotos.find((item) => item.id === caption.imageId)
   if (photo) return { src: photo.src, alt: photo.alt, category: photo.label }
-  const visual = captionImages.find((item) => item.id === caption.imageId)
-  return visual ? { src: `/captions/${visual.id}.svg`, alt: visual.alt, category: visual.category }
-    : { src: '', alt: 'Caption illustration unavailable', category: 'AI caption' }
+  return { src: '', alt: 'Photo unavailable', category: 'Photo' }
 }
 
 export function captionFlavor(style: string): string {

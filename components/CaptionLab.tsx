@@ -7,15 +7,7 @@ import { useGeneration } from './GenerationProvider'
 import { CAPTION_STYLES, CAPTION_TOPICS, CAPTION_PERSPECTIVES, topicLabels, perspectiveLabels, type CaptionStyle, type CaptionTopic, type CaptionPerspective } from '@/lib/generation-options'
 import { presetPhotos } from '@/lib/preset-photos'
 
-const illustrations = [
-  { id: 'udp', label: 'Left on read', alt: 'A paper airplane carrying a message into the unknown', prompt: 'A message vanishes into the void of the dorm group chat.' },
-  { id: 'dark-mode', label: 'One more tab', alt: 'A laptop glowing in the dark, attracting a few curious bugs', prompt: 'It is late at night in the dorms, and the laptop is still glowing.' },
-  { id: 'gravity', label: 'Light reading', alt: 'An open book floating above a desk', prompt: 'An open book floats above a desk during a long library study session.' },
-  { id: 'interest', label: 'Student budget', alt: 'A piggy bank beside a falling interest chart', prompt: 'A piggy bank watches a falling interest chart after a weekend in New York.' },
-  { id: 'binary', label: 'Roommate logic', alt: 'Two friendly robots, one and zero', prompt: 'Two robot roommates, one and zero, have very different ideas about the weekend.' },
-  { id: 'earth', label: 'Outside era', alt: 'A happy planet Earth enjoying the sunshine', prompt: 'A happy planet enjoys the sunshine while a student finally goes outside in New York.' },
-] as const
-const images = [...presetPhotos, ...illustrations.map((image) => ({ ...image, src: `/captions/${image.id}.svg` }))]
+const images = [...presetPhotos]
 
 const styleDescriptions: Record<CaptionStyle, { label: string; description: string }> = {
   dry: { label: 'Dry', description: 'Understated. Unbothered.' },
@@ -336,7 +328,7 @@ export default function CaptionLab({ initialRemaining = null, dailyBrief, initia
             )}
             {photoError && <p className="status status-error" role="alert">{photoError}{needsLogin && <> <Link href="/login">Sign in</Link></>}</p>}
           </div>
-          <p className="lab-preset-label">Or start with a real photo or illustration</p>
+          <p className="lab-preset-label">Or start with one of our photos</p>
           <div className="lab-image-options">
             {photo && <label className="lab-image-option">
               <input type="radio" name="image" value={photo.id || 'upload-pending'} checked={photoSelected} onChange={() => { if (prompt === selected.prompt) setPrompt(''); setImageId(photo.id || 'upload-pending'); edit() }} />
